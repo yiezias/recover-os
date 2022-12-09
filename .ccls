@@ -1,0 +1,11 @@
+gcc
+-Ilib
+-Ikernel
+-Idevice
+-Itask
+-fno-builtin
+-W
+-Wall
+-Wstrict-prototypes
+-Wmissing-prototypes
+-fno-stack-protector

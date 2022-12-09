@@ -1,0 +1,239 @@
+;	asmsyntax=nasm
+
+	loader_base	equ	0x500
+	mbr_size	equ 	512
+	page_base	equ 	0x100000
+	kernel_buf 	equ 	0x70000
+	kernel_entry	equ 	0xffff800000000800
+
+
+	mbr_start:
+	mov 	ax,0x0202	;ah功能读磁盘，al扇区数
+	mov 	cx,0x0002	;ch柱面号，cl扇区号
+	mov 	dh,0x00		;dh磁头号，dl驱动器号
+	mov 	bx,loader_base	;es:bx缓冲区地址
+	int 	0x13
+
+	mov 	ax,0xb800
+	mov 	ds,ax
+	mov word [0],'M'+0xc00 	;打印'M'
+
+	jmp 	0:loader_start+loader_base-mbr_size
+	;跳转到loader_start
+
+	times 	510-($-$$) 	db 	0
+	dw 	0xaa55
+
+	gdt_base:
+	dq 	0
+	code_desc:
+	dq 	0x0020980000000000
+	data_desc:
+	dq 	0x0000920000000000
+	tss_desc:
+	dq 	0
+	dq 	0
+	user_desc:
+	dq 	0x0000f20000000000
+	dq 	0x0020f80000000000
+
+	gdt_ptr:
+	dw 	$-gdt_base-1
+	dq 	gdt_base+loader_base-mbr_size
+
+	gdt_base32:
+	dq 	0
+	code32_desc:
+	dq 	0x00cf98000000ffff
+	data32_desc:
+	dq 	0x00cf92000000ffff
+
+	gdt_ptr32:
+	dw 	$-gdt_base32-1
+	dd 	gdt_base32+loader_base-mbr_size
+
+	sector_code 	equ 	code_desc-gdt_base
+	sector_data 	equ 	data_desc-gdt_base
+
+	sector_code32	equ	code32_desc-gdt_base32
+	sector_data32	equ	data32_desc-gdt_base32
+
+	loader_start:
+	mov word ds:[0],0x0c00+'l'
+	xor 	ax,ax
+	mov 	ds,ax
+
+	;准备进入保护模式
+	in 	al,0x92
+	or 	al,0b10
+	out 	0x92,al
+
+	mov 	eax,cr0
+	or 	eax,1
+	mov 	cr0,eax
+
+	cli
+
+	lgdt 	[gdt_ptr32+loader_base-mbr_size]
+	jmp 	sector_code32:loader_base+code32_start-mbr_size
+	;跳转到code32_start并进入保护模式
+
+	bits 	32
+	code32_start:
+	mov 	ax,sector_data32
+	mov 	ds,ax
+	mov 	es,ax
+	mov 	ss,ax
+	mov 	gs,ax
+	mov 	esp,0xffffffff
+
+	mov word [0xb8000],0x0700+'P'
+
+	mov 	ecx,0x1000
+
+	pml4_clear:
+	mov byte [ecx+page_base-1],0
+	loop 	pml4_clear
+
+	mov dword [page_base],page_base+0x1007
+	mov dword [page_base+0x800],page_base+0x1007-4
+	mov dword [page_base+0x1000],page_base+0x2007
+	mov dword [page_base+0x2000],page_base+0x3007
+
+	mov dword [page_base+4088],page_base+7-4
+
+	mov 	ecx,256
+	xor 	ebx,ebx
+	mov 	eax,7
+	create_pte:
+	mov 	[8*ebx+page_base+0x3000],eax
+	inc 	ebx
+	add 	eax,0x1000
+	loop 	create_pte
+
+	lgdt 	[gdt_ptr+loader_base-mbr_size]
+	mov	eax,	cr4
+	or	eax,	100000b
+	mov	cr4,	eax
+
+	mov	eax,	page_base
+	mov	cr3,	eax
+
+	mov	ecx,	0C0000080h
+	rdmsr
+
+	or	eax,	101h
+	wrmsr
+
+	mov	eax,	cr0
+	or	eax,	80000001h
+	mov	cr0,	eax
+
+	mov dword [gdt_ptr+loader_base-mbr_size+6],0xffff8000
+	jmp 	sector_code:loader_base+code_start-mbr_size
+
+	section code
+	bits 64
+
+	code_start:
+	lgdt 	[gdt_ptr+loader_base-mbr_size]
+	mov 	rsp,0xffff80000009f000
+
+	mov 	rax,0xffff8000000b8000
+	mov word [rax+0],0x0c00+'L'
+
+	mov 	rax,0xff
+	mov 	rdi,kernel_buf
+	mov 	rcx,3
+
+	call 	read_disk
+	call 	kernel_init
+	mov 	rax,kernel_entry
+	jmp 	rax
+
+	;al扇区数，rdi目的地址，rcx 8~39位lba28地址
+	read_disk:
+	push	rbp
+	mov 	rbp,rsp
+	mov 	[rbp-8],rdx
+	mov 	[rbp-16],rax
+	mov 	[rbp-24],rcx
+
+	mov 	dx,0x1f2
+	out 	dx,al
+
+	mov 	rax,rcx
+
+	mov 	rcx,3
+
+	write_lba:
+	inc 	dx
+	out 	dx,al
+	shr	rax,8
+	loop 	write_lba
+
+	inc 	dx
+	or 	al,0xe0
+	out 	dx,al
+
+	shr	rax,8
+	inc 	dx
+	mov 	al,0x20
+	out 	dx,al
+
+	not_ready:
+	in 	al,dx
+	and 	al,0x88
+	cmp	al,8
+	jne	not_ready
+
+	mov 	rax,[rbp-16]
+	mov 	dx,256
+	mul	dx
+	mov 	rcx,rax
+	
+	mov 	dx,0x1f0
+	go_on_read:
+	in 	ax,dx
+	mov 	[rdi],ax
+	add 	rdi,2
+	loop 	go_on_read
+
+	mov 	rcx,[rbp-24]
+	mov 	rax,[rbp-16]
+	mov 	rdx,[rbp-8]
+	leave
+	ret
+
+	kernel_init:
+	xor 	rcx,rcx
+	xor 	rbx,rbx
+	mov 	rax,[kernel_buf+32] 	;程序表偏移
+	mov 	bx,[kernel_buf+54]	;程序表长度
+	mov 	cx,[kernel_buf+56]	;程序表数量
+
+	sgmt_load:
+	mov 	rdi,[kernel_buf+rax+16]
+
+	mov 	rsi,0xffff800000000000
+	cmp 	rdi,rsi
+	jb	next_sgmt
+
+	cmp dword [kernel_buf+rax],0
+	je 	next_sgmt
+	mov 	rsi,[kernel_buf+rax+8]
+	add 	rsi,kernel_buf
+	push 	rcx
+
+	mov 	rcx,[kernel_buf+rax+32]
+	cld
+	rep 	movsb
+
+	pop 	rcx
+
+	next_sgmt:
+	add 	rax,rbx
+	loop 	sgmt_load
+
+	ret
+

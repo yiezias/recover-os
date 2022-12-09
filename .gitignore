@@ -1,0 +1,5 @@
+bochs.log
+build/*
+!.gitkeep
+.ccls-cache
+disk.img
