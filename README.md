@@ -1,4 +1,4 @@
-# 主要模块
+# 主要的基础模块
 
 1. 引导
 - ./boot/boot.asm
@@ -10,3 +10,5 @@
 - ./kernel/intr.h
 - ./kernel/intr_entry.S
 
+# 基本内存管理模块
+提供对内存页的分配释放函数，虚拟内存管理相关结构。具体见./kernel/memory.h。

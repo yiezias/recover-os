@@ -4,7 +4,8 @@ DISK=disk.img
 KERNEL=$(BUILD_DIR)/kernel.bin
 
 OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/print.o $(BUILD_DIR)/string.o \
-     $(BUILD_DIR)/init.o $(BUILD_DIR)/intr.o $(BUILD_DIR)/intr_entry.o $(BUILD_DIR)/memory.o
+     $(BUILD_DIR)/init.o $(BUILD_DIR)/intr.o $(BUILD_DIR)/intr_entry.o $(BUILD_DIR)/memory.o \
+     $(BUILD_DIR)/bitmap.o $(BUILD_DIR)/tss.o
 
 
 CC=gcc
@@ -53,7 +54,6 @@ $(BUILD_DIR)/%.d: task/%.[cS]
 
 $(BUILD_DIR)/boot.bin: boot/boot.asm $(DISK)
 	nasm $< -o $@
-	#if [[ ! -f $(DISK) ]];then bximage -func=create -hd=10M -imgmode=flat -q $(DISK);fi
 	dd if=$@ of=$(DISK) conv=notrunc
 
 $(KERNEL): $(OBJS) $(DISK)
