@@ -5,7 +5,8 @@ KERNEL=$(BUILD_DIR)/kernel.bin
 
 OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/print.o $(BUILD_DIR)/string.o \
      $(BUILD_DIR)/init.o $(BUILD_DIR)/intr.o $(BUILD_DIR)/intr_entry.o $(BUILD_DIR)/memory.o \
-     $(BUILD_DIR)/bitmap.o $(BUILD_DIR)/tss.o
+     $(BUILD_DIR)/bitmap.o $(BUILD_DIR)/tss.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
+     $(BUILD_DIR)/switch.o $(BUILD_DIR)/timer.o
 
 
 CC=gcc

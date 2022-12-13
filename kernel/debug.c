@@ -1,12 +1,11 @@
 #include "debug.h"
-//#include "intr.h"
+#include "intr.h"
 #include "print.h"
 
 
 void panic_spin(const char *file, int line, const char *func,
 		const char *condition) {
-	;
-//	set_intr_stat(intr_off);
+	set_intr_stat(intr_off);
 	put_str("\x1b\x0c\n\n!!!!!!!!   SOMETING WENT WRONG (ToT)   !!!!!!!!\n");
 	put_str("file: \"");
 	put_str((char *)file);

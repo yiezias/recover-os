@@ -137,7 +137,7 @@ void intr_init(void) {
 	pic_init();
 	intr_handle_init();
 	idt_init();
-//	idt_table[0x20].ist = 2;
+	idt_table[0x20].ist = 2;
 
 	put_str("intr_init: done\n");
 }
