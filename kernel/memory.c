@@ -92,7 +92,7 @@ static uint64_t *page_entry_ptr(size_t vaddr, enum PML pml) {
 }
 
 static int map_status(size_t vaddr) {
-	enum PML pml = pml4;
+	int pml = pml4;
 	for (; pml >= 0; --pml) {
 		uint64_t *pep = page_entry_ptr(vaddr, pml);
 		if (!(*pep & PROT_P)) {
@@ -105,7 +105,7 @@ static int map_status(size_t vaddr) {
 static size_t addr_v2p(size_t vaddr) {
 	/* 如果内存未映射可能返回不确定的值
 	 * 或发生缺页中断 */
-	if (map_status(vaddr) == -1) {
+	if (map_status(vaddr) != -1) {
 		return 0;
 	}
 	return (*page_entry_ptr(vaddr, pt) & ~0xfff) | (vaddr & 0xfff);
@@ -133,15 +133,17 @@ void *alloc_pages(struct virt_pool *vpool, size_t pg_cnt) {
 }
 
 void free_pages(void *vaddr, struct virt_pool *vpool, size_t pg_cnt) {
-	for (size_t i = 0; i != pg_cnt; ++i) {
+	for (size_t i = 0; i != pg_cnt; ++i, vaddr += PG_SIZE) {
 		size_t vidx = ((size_t)vaddr - vpool->start) / PG_SIZE;
+		ASSERT(bitmap_read(&vpool->pool_bitmap, vidx));
+		bitmap_set(&vpool->pool_bitmap, vidx, 0);
+
 		size_t paddr = addr_v2p((size_t)vaddr);
 		if (paddr == 0) {
-			break;
+			continue;
 		}
 		size_t pidx = (paddr - phy_pool.start) / PG_SIZE;
 
-		bitmap_set(&vpool->pool_bitmap, vidx, 0);
 		bitmap_set(&phy_pool.pool_bitmap, pidx, 0);
 	}
 }
@@ -157,7 +159,7 @@ static inline bool in_range(size_t num, size_t start, size_t len) {
 	return num >= start && num < start + len;
 }
 
-static void intr_page_handle(void) {
+static void intr_page_handle(int intr_nr, uint64_t *rbp_ptr) {
 	size_t page_fault_vaddr;
 	asm("movq %%cr2, %0" : "=r"(page_fault_vaddr));
 
@@ -173,6 +175,7 @@ static void intr_page_handle(void) {
 
 invalid_page:
 	UNUSED;
+	intr_output(intr_nr, rbp_ptr);
 	put_info("\x1b\x0c\naccess address is invalid: ", page_fault_vaddr);
 	while (1) {}
 

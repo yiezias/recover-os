@@ -1,7 +1,6 @@
 #include "intr.h"
 #include "global.h"
 #include "io.h"
-#include "print.h"
 
 
 #define IDT_DESC_CNT 0x30
@@ -43,28 +42,28 @@ enum intr_stat set_intr_stat(enum intr_stat stat) {
 static void pic_init(void) {
 	put_str("pic_init: start\n");
 	/*初始化主片*/
-	outb(PIC_M_CTRL,0x11);  
-	outb(PIC_M_DATA,0x20);  // 初始中断向量号0x20
+	outb(PIC_M_CTRL, 0x11);
+	outb(PIC_M_DATA, 0x20);	 // 初始中断向量号0x20
 
-	outb(PIC_M_DATA,0x04);  // IR2接从片
-	outb(PIC_M_DATA,0x01);  // 8086模式
+	outb(PIC_M_DATA, 0x04);	 // IR2接从片
+	outb(PIC_M_DATA, 0x01);	 // 8086模式
 
 	/*初始化从片*/
-	outb(PIC_S_CTRL, 0x11);	 
-	outb(PIC_S_DATA,0x28);  // 初始中断向量号0x28
+	outb(PIC_S_CTRL, 0x11);
+	outb(PIC_S_DATA, 0x28);	 // 初始中断向量号0x28
 
-	outb(PIC_S_DATA,0x02);		 // 连接到主片IR2引脚
-	outb(PIC_S_DATA, 0x01);	 
+	outb(PIC_S_DATA, 0x02);	 // 连接到主片IR2引脚
+	outb(PIC_S_DATA, 0x01);
 
 	/*打开主片IR0,只接受时钟中断*/
 	outb(PIC_M_DATA, 0xfe);
 	outb(PIC_S_DATA, 0xff);
 
 	// 接受来自从片中断
-	//	outb(PIC_M_DATA, 0xf8);
+	outb(PIC_M_DATA, 0xf8);
 
 	// 接受硬盘控制器中断
-	//	outb(PIC_S_DATA, 0xbf);
+	outb(PIC_S_DATA, 0xbf);
 
 	put_str("pic_init: done\n");
 }
@@ -72,19 +71,11 @@ static void pic_init(void) {
 
 
 static void general_intr_handle(int intr_nr, uint64_t *rbp_ptr) {
-	if (intr_nr == 0x27) {
+	if (intr_nr == 0x27 || intr_nr == 0x2f || intr_nr == 0x21) {
 		return;
 	}
-	put_info("\x1b\x0c\n\nintr_nr:\t", intr_nr);
 
-	put_info("ss_old:\t", rbp_ptr[0]);
-	put_info("rsp_old:\t", rbp_ptr[-1]);
-	put_info("rflags_old:\t", rbp_ptr[-2]);
-	put_info("cs_old:\t\t", rbp_ptr[-3]);
-	put_info("rip_old:\t", rbp_ptr[-4]);
-	// printk("thread:\t%d,
-	//        % s\n ", current->pid,
-	//	 current->name);
+	intr_output(intr_nr, rbp_ptr);
 	while (1) {}
 }
 

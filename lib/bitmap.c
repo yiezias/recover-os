@@ -25,6 +25,7 @@ void bitmap_set(struct bitmap *btmp, uint64_t idx, bool value) {
 }
 
 int64_t bitmap_alloc(struct bitmap *btmp, uint64_t cnt) {
+	int64_t ret = -1;
 	for (size_t i = 0; i < 8 * btmp->bytes_len; ++i) {
 		if (0 == bitmap_read(btmp, i)) {
 			size_t j = 1;
@@ -37,11 +38,13 @@ int64_t bitmap_alloc(struct bitmap *btmp, uint64_t cnt) {
 				for (size_t k = 0; k != cnt; ++k) {
 					bitmap_set(btmp, i + k, 1);
 				}
-				return i;
+				ret = i;
+				goto alloc_done;
 			} else {
 				i += j;
 			}
 		}
 	}
-	return -1;
+alloc_done:
+	return ret;
 }

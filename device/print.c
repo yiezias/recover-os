@@ -24,9 +24,7 @@ static uint16_t get_cur(void) {
 
 static void set_cur(uint16_t cur) {
 	if (cur >= (80 * 25)) {
-		memcpy((void *)(D_BASE_ADDR
-				- 160),
-		       (void *)D_BASE_ADDR,
+		memcpy((void *)(D_BASE_ADDR - 160), (void *)D_BASE_ADDR,
 		       2 * 80 * 26);
 		cur -= 80;
 	}
@@ -41,8 +39,7 @@ static void set_cur(uint16_t cur) {
 }
 
 void put_char(char c) {
-	static bool change_property =
-		false;
+	static bool change_property = false;
 	if (change_property) {
 		d_property = c;
 		change_property = false;
@@ -59,39 +56,22 @@ void put_char(char c) {
 		set_cur(cur / 80 * 80);
 		break;
 	case '\n':
-		set_cur((cur / 80 + 1)
-			* 80);
+		set_cur((cur / 80 + 1) * 80);
 		break;
 	case '\b':
 		set_cur(--cur);
-		*(uint16_t
-			  *)(D_BASE_ADDR
-			     + cur * 2) =
-			' '
-			+ (d_property
-			   << 8);
+		*(uint16_t *)(D_BASE_ADDR + cur * 2) = ' ' + (d_property << 8);
 		break;
 	case '\t': {
-		uint16_t new_cur =
-			(cur / 8 + 1)
-			* 8;
+		uint16_t new_cur = (cur / 8 + 1) * 8;
 		while (cur <= new_cur)
-			*(uint16_t
-				  *)(D_BASE_ADDR
-				     + cur++ * 2) =
-				' '
-				+ (d_property
-				   << 8);
+			*(uint16_t *)(D_BASE_ADDR + cur++ * 2) =
+				' ' + (d_property << 8);
 		set_cur(new_cur);
 		break;
 	}
 	default:
-		*(uint16_t
-			  *)(D_BASE_ADDR
-			     + cur * 2) =
-			c
-			+ (d_property
-			   << 8);
+		*(uint16_t *)(D_BASE_ADDR + cur * 2) = c + (d_property << 8);
 		set_cur(++cur);
 		break;
 	}
