@@ -1,4 +1,5 @@
 #include "init.h"
+#include "ide.h"
 #include "intr.h"
 #include "memory.h"
 #include "print.h"
@@ -14,6 +15,7 @@ void init_all(void) {
 	tss_init();
 	mem_init();
 	task_init();
+	ide_init();
 
 	put_str("init_all: done\n");
 }
