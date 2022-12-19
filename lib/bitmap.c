@@ -1,6 +1,7 @@
 
 #include "bitmap.h"
 #include "debug.h"
+#include "intr.h"
 #include "string.h"
 
 void bitmap_init(struct bitmap *btmp) {
@@ -17,15 +18,18 @@ void bitmap_set(struct bitmap *btmp, uint64_t idx, bool value) {
 	ASSERT(value == 0 || value == 1);
 	size_t bit_idx = idx % 8;
 	size_t byte_idx = idx / 8;
+	enum intr_stat old_stat = set_intr_stat(intr_off);
 	if (value) {
 		btmp->bits[byte_idx] |= (1 << bit_idx);
 	} else {
 		btmp->bits[byte_idx] &= ~(1 << bit_idx);
 	}
+	set_intr_stat(old_stat);
 }
 
 int64_t bitmap_alloc(struct bitmap *btmp, uint64_t cnt) {
 	int64_t ret = -1;
+	enum intr_stat old_stat = set_intr_stat(intr_off);
 	for (size_t i = 0; i < 8 * btmp->bytes_len; ++i) {
 		if (0 == bitmap_read(btmp, i)) {
 			size_t j = 1;
@@ -46,5 +50,6 @@ int64_t bitmap_alloc(struct bitmap *btmp, uint64_t cnt) {
 		}
 	}
 alloc_done:
+	set_intr_stat(old_stat);
 	return ret;
 }

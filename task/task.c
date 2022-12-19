@@ -40,7 +40,31 @@ void schedule(void) {
 }
 
 
+#define pid_bitmap_bytes 32
+uint8_t pid_bitmap_bits[pid_bitmap_bytes] = { 0 };
+
+struct {
+	struct bitmap pid_bitmap;
+	pid_t pid_start;
+} pid_pool;
+
+static void pid_pool_init(void) {
+	pid_pool.pid_start = 1;
+	pid_pool.pid_bitmap.bits = pid_bitmap_bits;
+	pid_pool.pid_bitmap.bytes_len = pid_bitmap_bytes;
+
+	bitmap_init(&pid_pool.pid_bitmap);
+}
+
+static pid_t alloc_pid(void) {
+	size_t bit_idx = bitmap_alloc(&pid_pool.pid_bitmap, 1);
+	return (bit_idx + pid_pool.pid_start);
+}
+
+
 static void init_task(struct task_struct *task) {
+	task->pid = alloc_pid();
+
 	task->prio = task->ticks = default_prio;
 	task->status = TASK_READY;
 	task->stack_magic = STACK_MAGIC;
@@ -99,6 +123,7 @@ static void make_main_task(void) {
 void task_init(void) {
 	put_str("task_init: start\n");
 
+	pid_pool_init();
 	list_init(&ready_tasks_list);
 	list_init(&all_tasks_list);
 	make_main_task();

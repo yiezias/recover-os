@@ -54,9 +54,13 @@ enum task_status {
 
 #define STACK_MAGIC 0x474d575a5a46594c
 
+typedef int pid_t;
+
 /* 任务PCB结构 */
 struct task_struct {
 	uint64_t *rbp_ptr;
+
+	pid_t pid;
 
 	uint8_t prio;
 	uint8_t ticks;
