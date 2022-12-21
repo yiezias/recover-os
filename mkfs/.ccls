@@ -4,9 +4,7 @@ gcc
 -Idevice
 -Itask
 -Ifs
--fno-builtin
 -W
 -Wall
 -Wstrict-prototypes
 -Wmissing-prototypes
--fno-stack-protector

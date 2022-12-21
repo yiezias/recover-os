@@ -117,6 +117,7 @@ static void str_info(char *message, char *str) {
 	put_char('\n');
 }
 
+uint32_t sectors;
 static void identify_disk(uint16_t dev_no) {
 	select_disk(dev_no);
 	outb(reg_cmd(dev_no), CMD_IDENTIFY);
@@ -133,7 +134,7 @@ static void identify_disk(uint16_t dev_no) {
 	memset(buf, 0, sizeof(buf));
 	swap_pairs_bytes(&id_info[md_start], buf, md_len);
 	str_info("\tMODULE:\t\t", buf);
-	uint32_t sectors = *(uint32_t *)&id_info[60 * 2];
+	sectors = *(uint32_t *)&id_info[60 * 2];
 	put_info("\tSECTORS:\t", sectors);
 }
 

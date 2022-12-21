@@ -11,4 +11,6 @@ void ide_init(void);
 void disk_read(void *buf, uint32_t lba, uint32_t blk_cnt);
 void disk_write(void *buf, uint32_t lba, uint32_t blk_cnt);
 
+extern uint32_t sectors;
+
 #endif

@@ -1,4 +1,5 @@
 #include "init.h"
+#include "fs.h"
 #include "ide.h"
 #include "intr.h"
 #include "memory.h"
@@ -16,6 +17,7 @@ void init_all(void) {
 	mem_init();
 	task_init();
 	ide_init();
+	filesys_init();
 
 	put_str("init_all: done\n");
 }
