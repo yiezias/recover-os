@@ -1,0 +1,6 @@
+# 省略build下所有文件
+# 不省略build本身于是
+# 放个gitkeep占位
+build/*
+!.gitkeep
+disk.img

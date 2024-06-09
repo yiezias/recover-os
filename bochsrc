@@ -1,0 +1,14 @@
+
+
+# 内存大小
+megs: 128
+
+# 从硬盘启动
+boot: disk
+
+log: /tmp/bochs.log
+
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+
+# 指定硬盘路径，chs大小之类的
+ata0-master: type=disk, path=disk.img, mode=flat, cylinders=20, heads=16, spt=63, translation=none
