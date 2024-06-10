@@ -23,7 +23,46 @@ mbr_start:
 	times 510-($-$$) 	db 	0
 	dw 	0xaa55
 
-	loader_start:
+	;保护模式gdt
+gdt_base32:
+	dq 	0
+code32_desc:
+	dq 	0x00cf98000000ffff
+data32_desc:
+	dq 	0x00cf92000000ffff
+
+gdt_ptr32:
+	dw 	$-gdt_base32-1
+	dd 	gdt_base32+loader_base-mbr_size
+
+	sector_code32	equ	code32_desc-gdt_base32
+	sector_data32	equ	data32_desc-gdt_base32
+
+loader_start:
 	mov word ds:[0],0x0c00+'l'
+	xor 	ax,ax
+	mov 	ds,ax
+
+	;准备进入保护模式
+	in 	al,0x92
+	or 	al,0b10
+	out 	0x92,al
+
+	mov 	eax,cr0
+	or 	eax,1
+	mov 	cr0,eax
+
+	cli
+
+	lgdt 	[gdt_ptr32+loader_base-mbr_size]
+	jmp 	sector_code32:loader_base+code32_start-mbr_size
+	;进入保护模式并跳转到code32_start
+
+	bits 	32
+code32_start:
+	mov 	ax,sector_data32
+	mov 	ds,ax
+
+	mov word [0xb8000],0x0c00+'P'
 
 	jmp 	$
