@@ -39,6 +39,27 @@ gdt_ptr32:
 	sector_code32	equ	code32_desc-gdt_base32
 	sector_data32	equ	data32_desc-gdt_base32
 
+	;长模式gdt
+gdt_base:
+	dq 	0
+code_desc:
+	dq 	0x0020980000000000
+data_desc:
+	dq 	0x0000920000000000
+tss_desc:
+	dq 	0
+	dq 	0
+user_desc:
+	dq 	0x0000f20000000000
+	dq 	0x0020f80000000000
+
+gdt_ptr:
+	dw 	$-gdt_base-1
+	dq 	gdt_base+loader_base-mbr_size
+
+	sector_code 	equ 	code_desc-gdt_base
+	sector_data 	equ 	data_desc-gdt_base
+
 loader_start:
 	mov word ds:[0],0x0c00+'l'
 	xor 	ax,ax
@@ -90,5 +111,36 @@ code32_start:
 	inc 	ebx
 	add 	eax,0x1000
 	loop 	create_pte
+
+	;准备进入长模式
+	lgdt 	[gdt_ptr+loader_base-mbr_size]
+	mov	eax,	cr4
+	or	eax,	100000b
+	mov	cr4,	eax
+
+	mov	eax,	page_base
+	mov	cr3,	eax
+
+	mov	ecx,	0C0000080h
+	rdmsr
+
+	or	eax,	101h
+	wrmsr
+
+	mov	eax,	cr0
+	or	eax,	80000001h
+	mov	cr0,	eax
+
+	;将gdt地址转移到内核地址空间防止被覆盖
+	mov dword [gdt_ptr+loader_base-mbr_size+6],0xffff8000
+	jmp 	sector_code:loader_base+code_start-mbr_size
+
+	section code
+	bits 64
+code_start:
+	lgdt 	[gdt_ptr+loader_base-mbr_size]
+
+	mov 	rax,0xffff8000000b8000
+	mov word [rax+0],0x0c00+'L'
 
 	jmp 	$
