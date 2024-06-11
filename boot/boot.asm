@@ -80,10 +80,13 @@ loader_start:
 	jmp 	sector_code32:loader_base+code32_start-mbr_size
 	;进入保护模式并跳转到code32_start
 
-	bits 	32
+bits 	32
 code32_start:
 	mov 	ax,sector_data32
 	mov 	ds,ax
+	mov 	es,ax
+	mov 	ss,ax
+	mov 	gs,ax
 
 	mov word [0xb8000],0x0c00+'P'
 
@@ -135,12 +138,70 @@ code32_start:
 	mov dword [gdt_ptr+loader_base-mbr_size+6],0xffff8000
 	jmp 	sector_code:loader_base+code_start-mbr_size
 
-	section code
-	bits 64
+section code
+bits 64
 code_start:
 	lgdt 	[gdt_ptr+loader_base-mbr_size]
 
 	mov 	rax,0xffff8000000b8000
 	mov word [rax+0],0x0c00+'L'
 
+	mov 	rsp,0xffff80000009f000
+
 	jmp 	$
+
+
+;al扇区数，rdi目的地址，rcx 8~39位lba28地址
+read_disk:
+	push	rbp
+	mov 	rbp,rsp
+	mov 	[rbp-8],rdx
+	mov 	[rbp-16],rax
+	mov 	[rbp-24],rcx
+
+	mov 	dx,0x1f2
+	out 	dx,al
+
+	mov 	rax,rcx
+
+	mov 	rcx,3
+
+	write_lba:
+	inc 	dx
+	out 	dx,al
+	shr	rax,8
+	loop 	write_lba
+
+	inc 	dx
+	or 	al,0xe0
+	out 	dx,al
+
+	shr	rax,8
+	inc 	dx
+	mov 	al,0x20
+	out 	dx,al
+
+	not_ready:
+	in 	al,dx
+	and 	al,0x88
+	cmp	al,8
+	jne	not_ready
+
+	mov 	rax,[rbp-16]
+	mov 	dx,256
+	mul	dx
+	mov 	rcx,rax
+
+	mov 	dx,0x1f0
+	go_on_read:
+	in 	ax,dx
+	mov 	[rdi],ax
+	add 	rdi,2
+	loop 	go_on_read
+
+	mov 	rcx,[rbp-24]
+	mov 	rax,[rbp-16]
+	mov 	rdx,[rbp-8]
+	leave
+	ret
+
