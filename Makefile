@@ -5,13 +5,13 @@ BUILD_DIR=build
 LD=ld
 CC=gcc
 
-LIB=-Ilib -Idevice
+LIB=-Ilib -Idevice -Ikernel
 CFLAGS=-c -fno-builtin -W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector $(LIB)
 LDFLAGS=-e main -Ttext 0xffff800000000800 --no-relax
 
 
 OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)/intr.o \
-     $(BUILD_DIR)/init.o $(BUILD_DIR)/debug.o
+     $(BUILD_DIR)/init.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/intr_entry.o
 
 
 run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
