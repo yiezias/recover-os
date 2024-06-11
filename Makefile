@@ -10,7 +10,7 @@ CFLAGS=-c -fno-builtin -W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-st
 LDFLAGS=-e main -Ttext 0xffff800000000800 --no-relax
 
 
-OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o
+OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)/intr.o
 
 
 run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
