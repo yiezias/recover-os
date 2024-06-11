@@ -3,6 +3,8 @@
 	loader_base	equ	0x500
 	mbr_size 	equ 	512
 	page_base	equ 	0x100000
+	kernel_buf 	equ 	0x70000
+	kernel_entry	equ 	0xffff800000000800
 
 mbr_start:
 	;0x13号中断，目的是将mbr后两个扇区内容
@@ -148,7 +150,18 @@ code_start:
 
 	mov 	rsp,0xffff80000009f000
 
-	jmp 	$
+	;将内核载入到缓冲区中
+	mov 	rax,0xff
+	mov 	rdi,kernel_buf
+	mov 	rcx,3
+
+	call 	read_disk
+	;将内核各个segment转移到对应地址
+	call 	kernel_init
+
+	;跳转到内核
+	mov 	rax,kernel_entry
+	jmp 	rax
 
 
 ;al扇区数，rdi目的地址，rcx 8~39位lba28地址
@@ -205,3 +218,35 @@ read_disk:
 	leave
 	ret
 
+;将elf的各个segment载入到对应地址
+kernel_init:
+	xor 	rcx,rcx
+	xor 	rbx,rbx
+	mov 	rax,[kernel_buf+32] 	;程序表偏移
+	mov 	bx,[kernel_buf+54]	;程序表长度
+	mov 	cx,[kernel_buf+56]	;程序表数量
+
+	sgmt_load:
+	mov 	rdi,[kernel_buf+rax+16]
+
+	mov 	rsi,0xffff800000000000
+	cmp 	rdi,rsi
+	jb	next_sgmt
+
+	cmp dword [kernel_buf+rax],0
+	je 	next_sgmt
+	mov 	rsi,[kernel_buf+rax+8]
+	add 	rsi,kernel_buf
+	push 	rcx
+
+	mov 	rcx,[kernel_buf+rax+32]
+	cld
+	rep 	movsb
+
+	pop 	rcx
+
+	next_sgmt:
+	add 	rax,rbx
+	loop 	sgmt_load
+
+	ret

@@ -49,3 +49,6 @@ $(BUILD_DIR)/boot.bin: boot/boot.asm $(DISK)
 $(BUILD_DIR)/kernel.bin: $(OBJS) $(DISK)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
 	dd if=$@ of=$(DISK) bs=512 seek=3 conv=notrunc
+
+
+.PHONY: run clean
