@@ -1,6 +1,7 @@
 gcc
 -Ilib
 -Ikernel
+-Idevice
 -fno-builtin
 -W
 -Wall

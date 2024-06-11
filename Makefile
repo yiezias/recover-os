@@ -5,11 +5,12 @@ BUILD_DIR=build
 LD=ld
 CC=gcc
 
-CFLAGS=-c -fno-builtin -W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector
+LIB=-Ilib -Idevice
+CFLAGS=-c -fno-builtin -W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector $(LIB)
 LDFLAGS=-e main -Ttext 0xffff800000000800 --no-relax
 
 
-OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o
+OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o
 
 
 run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
@@ -37,6 +38,10 @@ $(BUILD_DIR)/%.d: kernel/%.[cS]
 	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
 
 $(BUILD_DIR)/%.d: lib/%.[cS]
+	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
+	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
+
+$(BUILD_DIR)/%.d: device/%.[cS]
 	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
 	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
 

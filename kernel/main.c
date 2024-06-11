@@ -1,7 +1,8 @@
+#include "print.h"
 
 int main(void) {
-	unsigned long display = 0xffff8000000b8000;
-	*(short *)display = 0xc00 + 'K';
+	cls_screen();
+	put_str("Kernel start\n");
 	while (1) {}
 	return 0;
 }
