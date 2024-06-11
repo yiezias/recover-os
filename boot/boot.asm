@@ -26,21 +26,6 @@ mbr_start:
 	times 510-($-$$) 	db 	0
 	dw 	0xaa55
 
-	;保护模式gdt
-gdt_base32:
-	dq 	0
-code32_desc:
-	dq 	0x00cf98000000ffff
-data32_desc:
-	dq 	0x00cf92000000ffff
-
-gdt_ptr32:
-	dw 	$-gdt_base32-1
-	dd 	gdt_base32+loader_base-mbr_size
-
-	sector_code32	equ	code32_desc-gdt_base32
-	sector_data32	equ	data32_desc-gdt_base32
-
 	;长模式gdt
 gdt_base:
 	dq 	0
@@ -61,6 +46,21 @@ gdt_ptr:
 
 	sector_code 	equ 	code_desc-gdt_base
 	sector_data 	equ 	data_desc-gdt_base
+
+	;保护模式gdt
+gdt_base32:
+	dq 	0
+code32_desc:
+	dq 	0x00cf98000000ffff
+data32_desc:
+	dq 	0x00cf92000000ffff
+
+gdt_ptr32:
+	dw 	$-gdt_base32-1
+	dd 	gdt_base32+loader_base-mbr_size
+
+	sector_code32	equ	code32_desc-gdt_base32
+	sector_data32	equ	data32_desc-gdt_base32
 
 loader_start:
 	mov word ds:[0],0x0c00+'l'
