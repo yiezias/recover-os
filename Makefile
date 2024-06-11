@@ -9,7 +9,7 @@ CFLAGS=-c -fno-builtin -W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-st
 LDFLAGS=-e main -Ttext 0xffff800000000800 --no-relax
 
 
-OBJS=$(BUILD_DIR)/main.o
+OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o
 
 
 run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
@@ -33,6 +33,10 @@ DEPC=$(OBJS:.o=.d)
 include $(DEPC)
 
 $(BUILD_DIR)/%.d: kernel/%.[cS]
+	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
+	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
+
+$(BUILD_DIR)/%.d: lib/%.[cS]
 	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
 	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
 

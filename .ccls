@@ -1,0 +1,9 @@
+gcc
+-Ilib
+-Ikernel
+-fno-builtin
+-W
+-Wall
+-Wstrict-prototypes
+-Wmissing-prototypes
+-fno-stack-protector
