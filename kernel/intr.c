@@ -74,8 +74,7 @@ static void idt_init(void) {
 		idt_table[i].off_mid = (0xffff0000 & entry) >> 16;
 		idt_table[i].off_low = 0xffff & entry;
 
-	//	idt_table[i].ist = 1;
-	//	这个ist等设置了tss再用
+		idt_table[i].ist = 1;
 		idt_table[i].sct = SELECTOR_K_CODE;
 		idt_table[i].att = 0x8e;
 	}

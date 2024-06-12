@@ -2,6 +2,7 @@
 #include "bitmap.h"
 #include "debug.h"
 #include "print.h"
+#include "tss.h"
 
 struct {
 	size_t start;
@@ -44,6 +45,9 @@ void kfree_pages(void *vaddr, size_t pg_cnt) {
 
 void mem_init(void) {
 	put_str("mem_init: start\n");
+
 	kernel_mem_pool_init();
+	tss.ist1 = (size_t)kalloc_pages(1) + PG_SIZE;
+
 	put_str("mem_init: end\n");
 }
