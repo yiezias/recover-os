@@ -5,14 +5,14 @@ BUILD_DIR=build
 LD=ld
 CC=gcc
 
-LIB=-Ilib -Idevice -Ikernel
+LIB=-Ilib -Idevice -Ikernel -Itask
 CFLAGS=-c -fno-builtin -W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector $(LIB)
 LDFLAGS=-e main -Ttext 0xffff800000000800 --no-relax
 
 
 OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)/intr.o \
      $(BUILD_DIR)/init.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/intr_entry.o $(BUILD_DIR)/tss.o \
-     $(BUILD_DIR)/timer.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/bitmap.o
+     $(BUILD_DIR)/timer.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/bitmap.o $(BUILD_DIR)/task.o
 
 
 run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
@@ -44,6 +44,10 @@ $(BUILD_DIR)/%.d: lib/%.[cS]
 	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
 
 $(BUILD_DIR)/%.d: device/%.[cS]
+	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
+	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
+
+$(BUILD_DIR)/%.d: task/%.[cS]
 	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
 	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
 
