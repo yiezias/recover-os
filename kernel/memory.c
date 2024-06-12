@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "bitmap.h"
+#include "debug.h"
 #include "print.h"
 
 struct {
@@ -21,6 +22,24 @@ static void kernel_mem_pool_init(void) {
 	kernel_mem_pool.pool_bitmap.bits = kernel_mem_pool_bitmap;
 
 	bitmap_init(&kernel_mem_pool.pool_bitmap);
+}
+
+
+void *kalloc_pages(size_t pg_cnt) {
+	ssize_t idx = bitmap_alloc(&kernel_mem_pool.pool_bitmap, pg_cnt);
+	if (idx == -1) {
+		return NULL;
+	}
+	return (void *)(kernel_mem_pool.start + idx * PG_SIZE);
+}
+
+void kfree_pages(void *vaddr, size_t pg_cnt) {
+	size_t idx_start = (size_t)(vaddr - kernel_mem_pool.start) / PG_SIZE;
+	for (size_t i = 0; i != pg_cnt; ++i) {
+		ASSERT(bitmap_read(&kernel_mem_pool.pool_bitmap,
+				   idx_start + i));
+		bitmap_set(&kernel_mem_pool.pool_bitmap, idx_start + i, 0);
+	}
 }
 
 void mem_init(void) {
