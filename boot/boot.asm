@@ -108,7 +108,8 @@ code32_start:
 	mov dword [page_base+4088],page_base+7-4
 
 	;创建pte
-	mov 	ecx,256
+	;已映射2M共512个页，拟将后1M作为内核内存池
+	mov 	ecx,512
 	xor 	ebx,ebx
 	mov 	eax,7
 	create_pte:
