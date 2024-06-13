@@ -127,5 +127,8 @@ void intr_init(void) {
 	pic_init();
 	intr_handle_init();
 	idt_init();
+
+	// 时钟中断栈指向ist2
+	idt_table[0x20].ist = 2;
 	put_str("intr_init: end\n");
 }
