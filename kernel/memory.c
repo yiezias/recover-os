@@ -10,11 +10,11 @@ struct {
 } kernel_mem_pool;
 
 
-/* 内存池虚拟地址为0xffff800000100000到0xffff8000001fffff
- * 总共1MB 256页，已经在引导中与物理地址映射完成，可以自由访问 */
+/* 内存池虚拟地址为0xffff800000104000到0xffff8000001fffff
+ * 总共1MB 252页，已经在引导中与物理地址映射完成，可以自由访问 */
 
 static void kernel_mem_pool_init(void) {
-	kernel_mem_pool.start = 0xffff800000100000;
+	kernel_mem_pool.start = 0xffff800000104000;
 	const size_t btmp_bytes_len = 256 / 8;
 
 	static uint8_t kernel_mem_pool_bitmap[256 / 8] = { 0 };
