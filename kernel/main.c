@@ -8,6 +8,8 @@ int main(void) {
 	put_str("Kernel start\n");
 	init_all();
 	set_intr_stat(intr_on);
-	while (1) {}
+	while (1) {
+		put_str("main\n");
+	}
 	return 0;
 }

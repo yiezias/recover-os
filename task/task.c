@@ -1,6 +1,7 @@
 #include "task.h"
 #include "debug.h"
 #include "intr.h"
+#include "memory.h"
 #include "print.h"
 #include "tss.h"
 
@@ -9,7 +10,9 @@ struct list ready_tasks_list;
 
 
 struct task_struct *running_task(void) {
-	return (struct task_struct *)(tss.ist2 & (~0xfff));
+	size_t task = tss.ist2 - PG_SIZE;
+	ASSERT(!(task & 0xfff));
+	return (struct task_struct *)task;
 }
 
 extern void switch_to(struct task_struct *prev, struct task_struct *next);
@@ -31,7 +34,7 @@ void schedule(void) {
 					      list_pop(&ready_tasks_list));
 
 	next->status = TASK_RUNNING;
-	tss.ist2 = (size_t)(next->intr_stack + intr_stack_size);
+	tss.ist2 = (size_t)next + PG_SIZE;
 
 	switch_to(cur_task, next);
 }
@@ -45,13 +48,10 @@ static void init_task(struct task_struct *task) {
 
 
 static void make_main_task(void) {
-	struct task_struct *main_task;
-	asm volatile("movq %%rsp,%0;"
-		     "andq $0xfffffffffffff000,%0"
-		     : "=g"(main_task));
+	struct task_struct *main_task = kalloc_pages(1);
 	put_info("main_task: ", (size_t)main_task);
 
-	tss.ist2 = (size_t)(main_task->intr_stack + intr_stack_size);
+	tss.ist2 = (size_t)main_task + PG_SIZE;
 	put_info("ist2: ", tss.ist2);
 
 	main_task->status = TASK_RUNNING;
