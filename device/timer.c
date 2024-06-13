@@ -1,7 +1,9 @@
 #include "timer.h"
+#include "debug.h"
 #include "intr.h"
 #include "io.h"
 #include "print.h"
+#include "task.h"
 
 #define IRQ0_FREQUENCY 100
 #define INPUT_FREQUENCY 1193180
@@ -23,7 +25,14 @@ static void freqc_set(uint8_t CounterPort, uint8_t CounterNo, uint8_t rwl,
 size_t ticks = 0;
 
 static void intr_time_handle(void) {
+	struct task_struct *cur_task = running_task();
+	ASSERT(cur_task->stack_magic == STACK_MAGIC);
 	++ticks;
+	if (cur_task->ticks == 0) {
+		schedule();
+	} else {
+		--cur_task->ticks;
+	}
 }
 
 void timer_init(void) {

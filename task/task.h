@@ -10,7 +10,9 @@ enum task_status {
 	TASK_READY,
 };
 
-#define intr_stack_size 256
+/* 这个值提供中断所有过程需要的栈空间
+ * 不应过小，经测试最小值300左右 */
+#define intr_stack_size 512
 struct task_struct {
 	size_t rbp;
 
@@ -29,4 +31,7 @@ struct task_struct {
 #define STACK_MAGIC 0x474d575a5a46594c
 
 struct task_struct *running_task(void);
+
+void schedule(void);
+
 #endif
