@@ -12,7 +12,6 @@ struct task_struct *running_task(void) {
 }
 
 #define default_prio 30
-#define STACK_MAGIC 0x474d575a5a46594c
 static void init_task(struct task_struct *task) {
 	task->prio = task->ticks = default_prio;
 	task->stack_magic = STACK_MAGIC;
@@ -26,6 +25,8 @@ static void make_main_task(void) {
 		     "andq $0xfffffffffffff000,%0"
 		     : "=g"(main_task));
 	put_info("main_task: ", (size_t)main_task);
+
+	tss.ist2 = (size_t)(main_task->intr_stack + intr_stack_size);
 
 	main_task->status = TASK_RUNNING;
 	init_task(main_task);
