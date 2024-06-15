@@ -56,20 +56,10 @@ static void init_task(struct task_struct *task) {
 	task->stack_magic = STACK_MAGIC;
 	ASSERT(!elem_find(&all_tasks_list, &task->all_list_tag));
 	list_append(&all_tasks_list, &task->all_list_tag);
+
+	task->intr_stack = (struct intr_stack *)((size_t)task + PG_SIZE
+						 - sizeof(struct intr_stack));
 }
-
-
-struct intr_stack {
-	uint64_t rsi;
-	uint64_t rdi;
-	uint64_t rbp;
-	uint64_t err_code;
-	uint64_t rip;
-	uint64_t cs;
-	uint64_t rflags;
-	uint64_t rsp;
-	uint64_t ss;
-};
 
 struct task_stack {
 	uint64_t rbp;
@@ -84,16 +74,15 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 	extern void intr_exit(void);
 	task_stack->rip = (uint64_t)intr_exit;
 
-	struct intr_stack *intr_stack =
-		(struct intr_stack *)((size_t)task + PG_SIZE
-				      - sizeof(struct intr_stack));
-	task_stack->rbp = (size_t)&intr_stack->rbp;
-	intr_stack->rflags = 0x202;
-	intr_stack->cs = SELECTOR_K_CODE;
-	intr_stack->ss = SELECTOR_K_DATA;
-	intr_stack->rsp = stack;
-	intr_stack->rip = (size_t)entry;
-	intr_stack->rdi = (size_t)args;
+	struct task_struct *father_task = running_task();
+
+	task_stack->rbp = (size_t) & (task->intr_stack)->rbp;
+	task->intr_stack->rflags = 0x202;
+	task->intr_stack->cs = father_task->intr_stack->cs;
+	task->intr_stack->ss = father_task->intr_stack->ss;
+	task->intr_stack->rsp = stack;
+	task->intr_stack->rip = (size_t)entry;
+	task->intr_stack->rdi = (size_t)args;
 }
 
 struct task_struct *create_task(size_t stack, void *entry, void *args) {
@@ -119,12 +108,19 @@ static void make_main_task(void) {
 	init_task(main_task);
 }
 
+static void idle_task_init(void) {
+	idle_task = create_task((size_t)kalloc_pages(1) + PG_SIZE, idle, NULL);
+
+	idle_task->intr_stack->cs = SELECTOR_K_CODE;
+	idle_task->intr_stack->ss = SELECTOR_K_DATA;
+}
+
 void task_init(void) {
 	put_str("task_init: start\n");
 
 	list_init(&ready_tasks_list);
 	list_init(&all_tasks_list);
-	idle_task = create_task((size_t)kalloc_pages(1) + PG_SIZE, idle, NULL);
+	idle_task_init();
 	make_main_task();
 
 	put_str("task_init: end\n");

@@ -5,6 +5,19 @@
 
 void task_init(void);
 
+struct intr_stack {
+	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t rbp;
+	uint64_t err_code;
+	uint64_t rip;
+	uint64_t cs;
+	uint64_t rflags;
+	uint64_t rsp;
+	uint64_t ss;
+};
+
+
 enum task_status {
 	TASK_RUNNING,
 	TASK_READY,
@@ -21,6 +34,8 @@ struct task_struct {
 
 	struct list_elem general_tag;
 	struct list_elem all_list_tag;
+
+	struct intr_stack *intr_stack;
 
 	uint64_t stack_magic;
 };
