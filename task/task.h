@@ -8,6 +8,7 @@ void task_init(void);
 enum task_status {
 	TASK_RUNNING,
 	TASK_READY,
+	TASK_BLOCKED,
 };
 
 struct task_struct {
@@ -30,4 +31,6 @@ struct task_struct *running_task(void);
 void schedule(void);
 
 struct task_struct *create_task(size_t stack, void *entry, void *args);
+void task_block(enum task_status status);
+void task_unblock(struct task_struct *task);
 #endif

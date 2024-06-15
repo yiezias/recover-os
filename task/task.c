@@ -21,15 +21,15 @@ void schedule(void) {
 	ASSERT(intr_off == get_intr_stat());
 	struct task_struct *cur_task = running_task();
 
-	ASSERT(cur_task->status == TASK_RUNNING);
-	cur_task->status = TASK_READY;
+	if (cur_task->status == TASK_RUNNING) {
+		cur_task->status = TASK_READY;
 
-	ASSERT(cur_task->ticks == 0);
-	cur_task->ticks = cur_task->prio;
+		ASSERT(cur_task->ticks == 0);
+		cur_task->ticks = cur_task->prio;
 
-	ASSERT(!elem_find(&ready_tasks_list, &cur_task->general_tag));
-	list_append(&ready_tasks_list, &cur_task->general_tag);
-
+		ASSERT(!elem_find(&ready_tasks_list, &cur_task->general_tag));
+		list_append(&ready_tasks_list, &cur_task->general_tag);
+	}
 	ASSERT(!list_empty(&ready_tasks_list));
 	struct task_struct *next = elem2entry(struct task_struct, general_tag,
 					      list_pop(&ready_tasks_list));
@@ -117,4 +117,21 @@ void task_init(void) {
 	make_main_task();
 
 	put_str("task_init: end\n");
+}
+
+
+void task_block(enum task_status status) {
+	ASSERT(status == TASK_BLOCKED);
+	enum intr_stat old_stat = set_intr_stat(intr_off);
+	running_task()->status = status;
+	schedule();
+	set_intr_stat(old_stat);
+}
+
+void task_unblock(struct task_struct *task) {
+	ASSERT(task->status == TASK_BLOCKED);
+	enum intr_stat old_stat = set_intr_stat(intr_off);
+	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
+	list_push(&ready_tasks_list, &task->general_tag);
+	set_intr_stat(old_stat);
 }
