@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "debug.h"
+#include "global.h"
 #include "intr.h"
 #include "io.h"
 #include "print.h"
@@ -43,4 +44,18 @@ void timer_init(void) {
 	register_intr_handle(0x20, intr_time_handle);
 
 	put_str("timer_init: end\n");
+}
+
+#define mil_seconds_per_intr (1000 / IRQ0_FREQUENCY)
+static void ticks_to_sleep(size_t sleep_ticks) {
+	size_t start_tick = ticks;
+	while (ticks - start_tick < sleep_ticks) {
+		task_yield();
+	}
+}
+
+void mtime_sleep(size_t m_seconds) {
+	size_t sleep_ticks = DIV_ROUND_UP(m_seconds, mil_seconds_per_intr);
+	ASSERT(sleep_ticks > 0);
+	ticks_to_sleep(sleep_ticks);
 }

@@ -142,3 +142,14 @@ void task_unblock(struct task_struct *task) {
 	list_push(&ready_tasks_list, &task->general_tag);
 	set_intr_stat(old_stat);
 }
+
+void task_yield(void) {
+	struct task_struct *cur = running_task();
+	enum intr_stat old_stat = set_intr_stat(intr_off);
+
+	ASSERT(!elem_find(&ready_tasks_list, &cur->general_tag));
+	list_append(&ready_tasks_list, &cur->general_tag);
+	cur->status = TASK_READY;
+	schedule();
+	set_intr_stat(old_stat);
+}

@@ -48,4 +48,5 @@ void schedule(void);
 struct task_struct *create_task(size_t stack, void *entry, void *args);
 void task_block(enum task_status status);
 void task_unblock(struct task_struct *task);
+void task_yield(void);
 #endif

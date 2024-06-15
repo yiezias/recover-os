@@ -8,4 +8,6 @@
 
 #define UNUSED __attribute__((unused))
 
+#define DIV_ROUND_UP(X, STEP) (((X) + (STEP)-1) / (STEP))
+
 #endif
