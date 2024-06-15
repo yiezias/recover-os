@@ -1,4 +1,5 @@
 #include "init.h"
+#include "ide.h"
 #include "intr.h"
 #include "keyboard.h"
 #include "memory.h"
@@ -14,5 +15,6 @@ void init_all(void) {
 	mem_init();
 	task_init();
 	keyboard_init();
+	ide_init();
 	put_str("init_all: end\n");
 }
