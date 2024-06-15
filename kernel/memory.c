@@ -15,9 +15,9 @@ struct {
 
 static void kernel_mem_pool_init(void) {
 	kernel_mem_pool.start = 0xffff800000104000;
-	const size_t btmp_bytes_len = 256 / 8;
+	const size_t btmp_bytes_len = 252 / 8;
 
-	static uint8_t kernel_mem_pool_bitmap[256 / 8] = { 0 };
+	static uint8_t kernel_mem_pool_bitmap[252 / 8] = { 0 };
 
 	kernel_mem_pool.pool_bitmap.bytes_len = btmp_bytes_len;
 	kernel_mem_pool.pool_bitmap.bits = kernel_mem_pool_bitmap;
