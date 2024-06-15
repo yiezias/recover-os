@@ -29,4 +29,5 @@ struct task_struct *running_task(void);
 
 void schedule(void);
 
+struct task_struct *create_task(size_t stack, void *entry, void *args);
 #endif

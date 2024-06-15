@@ -4,16 +4,16 @@
 #define SAVE_ALL                \
 	pushq	%rbp            ;\
 	movq	%rsp,%rbp       ;\
-	movw	%ds ,-2(%rbp)   ;\
-	movw	%es ,-4(%rbp)   ;\
-	movw	%gs ,-6(%rbp)   ;\
-	movw	%fs ,-8(%rbp)   ;\
-	movq	%rax,-16(%rbp)  ;\
-	movq	%rbx,-24(%rbp)  ;\
-	movq	%rcx,-32(%rbp)  ;\
-	movq	%rdx,-40(%rbp)  ;\
-	movq	%rdi,-48(%rbp)  ;\
-	movq	%rsi,-56(%rbp)  ;\
+	movq	%rdi,-8(%rbp)  ;\
+	movq	%rsi,-16(%rbp)  ;\
+	movw	%ds ,-18(%rbp)   ;\
+	movw	%es ,-20(%rbp)   ;\
+	movw	%gs ,-22(%rbp)   ;\
+	movw	%fs ,-24(%rbp)   ;\
+	movq	%rax,-32(%rbp)  ;\
+	movq	%rbx,-40(%rbp)  ;\
+	movq	%rcx,-48(%rbp)  ;\
+	movq	%rdx,-56(%rbp)  ;\
 	movq	%r8 ,-64(%rbp)  ;\
 	movq	%r9 ,-72(%rbp)  ;\
 	movq	%r10,-80(%rbp)  ;\
@@ -50,16 +50,16 @@
 .text
 .global intr_exit
 intr_exit:
-    movw	-2(%rbp)  ,%ds 
-    movw	-4(%rbp)  ,%es 
-    movw	-6(%rbp)  ,%gs 
-    movw	-8(%rbp)  ,%fs 
-    movq	-16(%rbp) ,%rax
-    movq	-24(%rbp) ,%rbx
-    movq	-32(%rbp) ,%rcx
-    movq	-40(%rbp) ,%rdx
-    movq	-48(%rbp) ,%rdi
-    movq	-56(%rbp) ,%rsi
+    movq	-8(%rbp) ,%rdi
+    movq	-16(%rbp) ,%rsi
+    movw	-18(%rbp)  ,%ds 
+    movw	-20(%rbp)  ,%es 
+    movw	-22(%rbp)  ,%gs 
+    movw	-24(%rbp)  ,%fs 
+    movq	-32(%rbp) ,%rax
+    movq	-40(%rbp) ,%rbx
+    movq	-48(%rbp) ,%rcx
+    movq	-56(%rbp) ,%rdx
     movq	-64(%rbp) ,%r8 
     movq	-72(%rbp) ,%r9 
     movq	-80(%rbp) ,%r10
