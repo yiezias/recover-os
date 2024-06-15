@@ -16,6 +16,14 @@ struct task_struct *running_task(void) {
 	return (struct task_struct *)task;
 }
 
+struct task_struct *idle_task;
+static void idle(void *arg UNUSED) {
+	while (1) {
+		task_block(TASK_BLOCKED);
+		asm volatile("sti; hlt" : : : "memory");
+	}
+}
+
 extern void switch_to(struct task_struct *prev, struct task_struct *next);
 void schedule(void) {
 	ASSERT(intr_off == get_intr_stat());
@@ -30,7 +38,9 @@ void schedule(void) {
 		ASSERT(!elem_find(&ready_tasks_list, &cur_task->general_tag));
 		list_append(&ready_tasks_list, &cur_task->general_tag);
 	}
-	ASSERT(!list_empty(&ready_tasks_list));
+	if (list_empty(&ready_tasks_list)) {
+		task_unblock(idle_task);
+	}
 	struct task_struct *next = elem2entry(struct task_struct, general_tag,
 					      list_pop(&ready_tasks_list));
 
@@ -114,6 +124,7 @@ void task_init(void) {
 
 	list_init(&ready_tasks_list);
 	list_init(&all_tasks_list);
+	idle_task = create_task((size_t)kalloc_pages(1) + PG_SIZE, idle, NULL);
 	make_main_task();
 
 	put_str("task_init: end\n");

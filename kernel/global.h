@@ -6,4 +6,6 @@
 #define SELECTOR_U_CODE (0x30 + 3)
 #define SELECTOR_U_DATA (0x28 + 3)
 
+#define UNUSED __attribute__((unused))
+
 #endif
