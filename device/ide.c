@@ -1,5 +1,6 @@
 #include "ide.h"
 #include "debug.h"
+#include "intr.h"
 #include "io.h"
 #include "print.h"
 #include "sync.h"
@@ -27,14 +28,12 @@
 #define BIT_DEV_LBA 0x40
 #define BIT_DEV_DEV 0x10
 
-uint8_t hd_cnt;
+/* 一些硬盘操作的指令 */
+#define CMD_IDENTIFY 0xec      // identify指令
+#define CMD_READ_SECTOR 0x20   // 读扇区指令
+#define CMD_WRITE_SECTOR 0x30  // 写扇区指令
 
-enum HD {
-	ATA0M,
-	ATA0S,
-	ATA1M,
-	ATA1S,
-};
+uint8_t hd_cnt;
 
 struct ide_channel {
 	struct semaphore lock;
@@ -100,6 +99,57 @@ static void write2sector(enum HD hd, void *buf, uint8_t sec_cnt) {
 	outsw(reg_data(hd), buf, size_in_byte / 2);
 }
 
+
+void ide_read(enum HD hd, size_t lba, void *buf, size_t sec_cnt) {
+	ASSERT(sec_cnt > 0 && hd < hd_cnt);
+	sema_down(&channels[hd / 2].lock);
+
+	select_disk(hd);
+	for (size_t secs_done = 0; secs_done <= sec_cnt; secs_done += 256) {
+		int secs_op = (sec_cnt - secs_done) >= 256
+				      ? 256
+				      : (sec_cnt - secs_done);
+		select_sector(hd, lba + secs_done, secs_op);
+		cmd_out(hd, CMD_READ_SECTOR);
+		sema_down(&channels[hd / 2].disk_done);
+		ASSERT(busy_wait(hd));
+		read_from_sector(hd, buf + secs_done * 512, secs_op);
+	}
+
+	sema_up(&channels[hd / 2].lock);
+}
+
+void ide_write(enum HD hd, size_t lba, void *buf, size_t sec_cnt) {
+	ASSERT(sec_cnt > 0 && hd < hd_cnt);
+	sema_down(&channels[hd / 2].lock);
+
+	select_disk(hd);
+	for (size_t secs_done = 0; secs_done <= sec_cnt; secs_done += 256) {
+		int secs_op = (sec_cnt - secs_done) >= 256
+				      ? 256
+				      : (sec_cnt - secs_done);
+		select_sector(hd, lba + secs_done, secs_op);
+		cmd_out(hd, CMD_WRITE_SECTOR);
+		ASSERT(busy_wait(hd));
+		write2sector(hd, buf + secs_done * 512, secs_op);
+		sema_down(&channels[hd / 2].disk_done);
+	}
+
+	sema_up(&channels[hd / 2].lock);
+}
+
+static void intr_hd_handle(uint8_t irq_no) {
+	ASSERT(irq_no == 0x2e || irq_no == 0x2f);
+	uint8_t ch_no = irq_no - 0x2e;
+	struct ide_channel *channel = &channels[ch_no];
+	if (channel->expecting_intr) {
+		channel->expecting_intr = false;
+		sema_up(&channel->disk_done);
+		inb(reg_status(ch_no * 2));
+	}
+}
+
+
 void ide_init(void) {
 	put_str("ide_init: start\n");
 
@@ -107,6 +157,8 @@ void ide_init(void) {
 	for (int i = 0; i != 2; ++i) {
 		sema_init(&channels[i].lock, 1);
 		channels[i].expecting_intr = false;
+		sema_init(&channels[i].disk_done, 0);
+		register_intr_handle(0x2e + i, intr_hd_handle);
 	}
 
 	put_str("ide_init: end\n");
