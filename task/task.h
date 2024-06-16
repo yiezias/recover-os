@@ -30,6 +30,8 @@ struct task_struct {
 	uint8_t prio;
 	uint8_t ticks;
 
+	char name[20];
+
 	enum task_status status;
 
 	struct list_elem general_tag;
@@ -45,7 +47,8 @@ struct task_struct *running_task(void);
 
 void schedule(void);
 
-struct task_struct *create_task(size_t stack, void *entry, void *args);
+struct task_struct *create_task(size_t stack, void *entry, void *args,
+				char *name, uint8_t prio);
 void task_block(enum task_status status);
 void task_unblock(struct task_struct *task);
 void task_yield(void);

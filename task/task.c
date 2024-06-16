@@ -4,6 +4,7 @@
 #include "intr.h"
 #include "memory.h"
 #include "print.h"
+#include "string.h"
 #include "tss.h"
 
 struct list all_tasks_list;
@@ -50,9 +51,9 @@ void schedule(void) {
 	switch_to(cur_task, next);
 }
 
-#define default_prio 30
-static void init_task(struct task_struct *task) {
-	task->prio = task->ticks = default_prio;
+static void init_task(struct task_struct *task, char *name, uint8_t prio) {
+	strcpy(task->name, name);
+	task->prio = task->ticks = prio;
 	task->stack_magic = STACK_MAGIC;
 	ASSERT(!elem_find(&all_tasks_list, &task->all_list_tag));
 	list_append(&all_tasks_list, &task->all_list_tag);
@@ -85,9 +86,10 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 	task->intr_stack->rdi = (size_t)args;
 }
 
-struct task_struct *create_task(size_t stack, void *entry, void *args) {
+struct task_struct *create_task(size_t stack, void *entry, void *args,
+				char *name, uint8_t prio) {
 	struct task_struct *task = kalloc_pages(1);
-	init_task(task);
+	init_task(task, name, prio);
 	task->status = TASK_READY;
 	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
 	list_append(&ready_tasks_list, &task->general_tag);
@@ -105,11 +107,12 @@ static void make_main_task(void) {
 	put_info("ist2: ", tss.ist2);
 
 	main_task->status = TASK_RUNNING;
-	init_task(main_task);
+	init_task(main_task, "main", 30);
 }
 
 static void idle_task_init(void) {
-	idle_task = create_task((size_t)kalloc_pages(1) + PG_SIZE, idle, NULL);
+	idle_task = create_task((size_t)kalloc_pages(1) + PG_SIZE, idle, NULL,
+				"idle", 30);
 
 	idle_task->intr_stack->cs = SELECTOR_K_CODE;
 	idle_task->intr_stack->ss = SELECTOR_K_DATA;
