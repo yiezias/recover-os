@@ -6,7 +6,7 @@
 #include "sync.h"
 #include "timer.h"
 
-#define port_base(hd) (0x170 + 0x80 * (hd / 2))
+#define port_base(hd) (0x1f0 + 0x80 * (hd / 2))
 /* 定义硬盘各寄存器的端口号 */
 #define reg_data(hd) (port_base(hd) + 0)
 #define reg_error(hd) (port_base(hd) + 1)
@@ -15,7 +15,7 @@
 #define reg_lba_m(hd) (port_base(hd) + 4)
 #define reg_lba_h(hd) (port_base(hd) + 5)
 #define reg_dev(hd) (port_base(hd) + 6)
-#define reg_status(hd) (port_base(hd) + 6)
+#define reg_status(hd) (port_base(hd) + 7)
 #define reg_cmd(hd) (reg_status(hd))
 
 /* reg_status寄存器的一些关键位 */
