@@ -34,6 +34,7 @@
 #define CMD_WRITE_SECTOR 0x30  // 写扇区指令
 
 uint8_t hd_cnt;
+size_t disk_sectors;
 
 struct ide_channel {
 	struct semaphore lock;
@@ -138,6 +139,23 @@ void ide_write(enum HD hd, size_t lba, void *buf, size_t sec_cnt) {
 	sema_up(&channels[hd / 2].lock);
 }
 
+static size_t identify_disk(enum HD hd) {
+	char id_info[512];
+	select_disk(hd);
+	cmd_out(hd, CMD_IDENTIFY);
+	sema_down(&channels[hd / 2].disk_done);
+	ASSERT(busy_wait(hd));
+	read_from_sector(hd, id_info, 1);
+
+	put_str("disk sda");
+	put_char('0' + hd);
+	put_str(" sectors: 0x");
+	size_t sectors = *(uint32_t *)&id_info[60 * 2];
+	put_num(sectors);
+	put_str("\n");
+	return sectors;
+}
+
 static void intr_hd_handle(uint8_t irq_no) {
 	ASSERT(irq_no == 0x2e || irq_no == 0x2f);
 	uint8_t ch_no = irq_no - 0x2e;
@@ -159,6 +177,12 @@ void ide_init(void) {
 		channels[i].expecting_intr = false;
 		sema_init(&channels[i].disk_done, 0);
 		register_intr_handle(0x2e + i, intr_hd_handle);
+	}
+	for (int i = 0; i != hd_cnt; ++i) {
+		size_t sectors = identify_disk(i);
+		if (i == 0) {
+			disk_sectors = sectors;
+		}
 	}
 
 	put_str("ide_init: end\n");

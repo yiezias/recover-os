@@ -13,4 +13,6 @@ void ide_init(void);
 void ide_read(enum HD hd, size_t lba, void *buf, size_t sec_cnt);
 void ide_write(enum HD hd, size_t lba, void *buf, size_t sec_cnt);
 
+extern size_t disk_secotors;
+
 #endif
