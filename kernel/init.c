@@ -1,4 +1,5 @@
 #include "init.h"
+#include "fs.h"
 #include "ide.h"
 #include "intr.h"
 #include "keyboard.h"
@@ -16,5 +17,6 @@ void init_all(void) {
 	task_init();
 	keyboard_init();
 	ide_init();
+	filesys_init();
 	put_str("init_all: end\n");
 }

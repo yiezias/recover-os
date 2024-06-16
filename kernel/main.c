@@ -16,14 +16,6 @@ int main(void) {
 	put_str("Kernel start\n");
 	init_all();
 	set_intr_stat(intr_on);
-	char *buf = kalloc_pages(1);
-	for (int i = 0; i != PG_SIZE; ++i) {
-		buf[i] = i % 26 + 'a';
-	}
-	ide_write(0, 200, buf, 8);
-	memset(buf, 0, PG_SIZE);
-	ide_read(0, 200, buf, 8);
-	put_str(buf);
 	while (1) {}
 	return 0;
 }

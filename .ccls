@@ -3,6 +3,7 @@ gcc
 -Ikernel
 -Idevice
 -Itask
+-Ifs
 -fno-builtin
 -W
 -Wall
