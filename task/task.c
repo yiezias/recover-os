@@ -108,6 +108,9 @@ static void make_main_task(void) {
 
 	main_task->status = TASK_RUNNING;
 	init_task(main_task, "main", 30);
+
+	main_task->intr_stack->cs = SELECTOR_K_CODE;
+	main_task->intr_stack->ss = SELECTOR_K_DATA;
 }
 
 static void idle_task_init(void) {
