@@ -121,6 +121,27 @@ void *kalloc(size_t size) {
 	return b;
 }
 
+void kfree(void *addr) {
+	struct block *b = addr;
+	struct arena *a = block2arena(b);
+
+	sema_down(&a->desc->lock);
+	ASSERT(!elem_find(&a->desc->free_list, &b->free_elem));
+	list_append(&a->desc->free_list, &b->free_elem);
+
+	size_t blocks_per_arena =
+		(PG_SIZE - sizeof(struct arena)) / a->desc->block_size;
+	if (++a->free_block_cnt == blocks_per_arena) {
+		for (size_t idx = 0; idx != blocks_per_arena; ++idx) {
+			struct block *b = arena2block(a, idx);
+			ASSERT(elem_find(&a->desc->free_list, &b->free_elem));
+			list_remove(&b->free_elem);
+		}
+		kfree_pages(a, 1);
+	}
+	sema_up(&a->desc->lock);
+}
+
 void mem_init(void) {
 	put_str("mem_init: start\n");
 

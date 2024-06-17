@@ -24,17 +24,21 @@ int main(void) {
 }
 
 void task_a(void *arg) {
-	void *addr = kalloc(33);
-	sema_down(&sema);
-	put_info(arg, (size_t)addr);
-	sema_up(&sema);
-	while (1) {}
+	while (1) {
+		void *addr = kalloc(33);
+		sema_down(&sema);
+		put_info(arg, (size_t)addr);
+		sema_up(&sema);
+		kfree(addr);
+	}
 }
 
 void task_b(void *arg) {
-	void *addr = kalloc(63);
-	sema_down(&sema);
-	put_info(arg, (size_t)addr);
-	sema_up(&sema);
-	while (1) {}
+	while (1) {
+		void *addr = kalloc(63);
+		sema_down(&sema);
+		put_info(arg, (size_t)addr);
+		sema_up(&sema);
+		kfree(addr);
+	}
 }
