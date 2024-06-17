@@ -9,4 +9,5 @@ void mem_init(void);
 void *kalloc_pages(size_t pg_cnt);
 void kfree_pages(void *vaddr, size_t pg_cnt);
 
+void *kalloc(size_t size);
 #endif
