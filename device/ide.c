@@ -171,7 +171,7 @@ static void intr_hd_handle(uint8_t irq_no) {
 void ide_init(void) {
 	put_str("ide_init: start\n");
 
-	hd_cnt = *((uint8_t *)(0x475));
+	hd_cnt = *((uint8_t *)(0xffff800000000475));
 	for (int i = 0; i != 2; ++i) {
 		sema_init(&channels[i].lock, 1);
 		channels[i].expecting_intr = false;

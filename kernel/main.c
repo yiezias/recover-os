@@ -1,9 +1,13 @@
-#include "init.h"
+#include "fs.h"
+#include "ide.h"
 #include "intr.h"
+#include "keyboard.h"
 #include "memory.h"
 #include "print.h"
 #include "sync.h"
 #include "task.h"
+#include "timer.h"
+#include "tss.h"
 
 void task_a(void *arg);
 void task_b(void *arg);
@@ -12,13 +16,22 @@ struct semaphore sema;
 int main(void) {
 	cls_screen();
 	put_str("Kernel start\n");
-	init_all();
+	{
+		intr_init();
+		tss_init();
+		timer_init();
+		mem_init();
+		task_init();
+		keyboard_init();
+		ide_init();
+		filesys_init();
+	}
 	set_intr_stat(intr_on);
 	sema_init(&sema, 1);
-	create_task((size_t)alloc_pages(1) + PG_SIZE, task_a,
-		    "\x1b\x0ctask_a: ", "task_a", 30, 0);
-	create_task((size_t)alloc_pages(1) + PG_SIZE, task_b,
-		    "\x1b\x09task_b: ", "task_b", 30, 0);
+	//	create_task((size_t)alloc_pages(1) + PG_SIZE, task_a,
+	//		    "\x1b\x0ctask_a: ", "task_a", 30, 0);
+	//	create_task((size_t)alloc_pages(1) + PG_SIZE, task_b,
+	//		    "\x1b\x09task_b: ", "task_b", 30, 0);
 	while (1) {}
 	return 0;
 }
