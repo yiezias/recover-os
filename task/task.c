@@ -68,33 +68,36 @@ struct task_stack {
 };
 
 static void create_task_envi(struct task_struct *task, size_t stack,
-			     void *entry, void *args) {
+			     void *entry, void *args, bool su) {
 	struct task_stack *task_stack =
 		(struct task_stack *)(stack - sizeof(struct task_stack));
 	task->rbp = (size_t)&task_stack->rbp;
 	extern void intr_exit(void);
 	task_stack->rip = (uint64_t)intr_exit;
 
-	struct task_struct *father_task = running_task();
-
 	task_stack->rbp = (size_t) & (task->intr_stack)->rbp;
 	task->intr_stack->rflags = 0x202;
-	task->intr_stack->cs = father_task->intr_stack->cs;
-	task->intr_stack->ss = father_task->intr_stack->ss;
+	if (su) {
+		task->intr_stack->cs = SELECTOR_U_CODE;
+		task->intr_stack->ss = SELECTOR_U_DATA;
+	} else {
+		task->intr_stack->cs = SELECTOR_K_CODE;
+		task->intr_stack->ss = SELECTOR_K_DATA;
+	}
 	task->intr_stack->rsp = stack;
 	task->intr_stack->rip = (size_t)entry;
 	task->intr_stack->rdi = (size_t)args;
 }
 
 struct task_struct *create_task(size_t stack, void *entry, void *args,
-				char *name, uint8_t prio) {
+				char *name, uint8_t prio, bool su) {
 	struct task_struct *task = kalloc_pages(1);
 	init_task(task, name, prio);
 	task->status = TASK_READY;
 	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
 	list_append(&ready_tasks_list, &task->general_tag);
 
-	create_task_envi(task, stack, entry, args);
+	create_task_envi(task, stack, entry, args, su);
 
 	return task;
 }
@@ -115,7 +118,7 @@ static void make_main_task(void) {
 
 static void idle_task_init(void) {
 	idle_task = create_task((size_t)kalloc_pages(1) + PG_SIZE, idle, NULL,
-				"idle", 30);
+				"idle", 30, 0);
 
 	idle_task->intr_stack->cs = SELECTOR_K_CODE;
 	idle_task->intr_stack->ss = SELECTOR_K_DATA;

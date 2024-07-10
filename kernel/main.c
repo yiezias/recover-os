@@ -16,9 +16,9 @@ int main(void) {
 	set_intr_stat(intr_on);
 	sema_init(&sema, 1);
 	create_task((size_t)kalloc_pages(1) + PG_SIZE, task_a,
-		    "\x1b\x0ctask_a: ", "task_a", 30);
+		    "\x1b\x0ctask_a: ", "task_a", 30, 0);
 	create_task((size_t)kalloc_pages(1) + PG_SIZE, task_b,
-		    "\x1b\x09task_b: ", "task_b", 30);
+		    "\x1b\x09task_b: ", "task_b", 30, 0);
 	while (1) {}
 	return 0;
 }

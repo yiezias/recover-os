@@ -48,7 +48,7 @@ struct task_struct *running_task(void);
 void schedule(void);
 
 struct task_struct *create_task(size_t stack, void *entry, void *args,
-				char *name, uint8_t prio);
+				char *name, uint8_t prio, bool su);
 void task_block(enum task_status status);
 void task_unblock(struct task_struct *task);
 void task_yield(void);
