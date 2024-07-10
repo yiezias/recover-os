@@ -38,7 +38,13 @@ static void general_intr_handle(int intr_nr, uint64_t *rbp_ptr) {
 		return;
 	}
 
-	intr_output(intr_nr, rbp_ptr);
+	put_info("\x1b\x0c\n\nintr_nr:\t", intr_nr);
+
+	put_info("ss_old:\t", rbp_ptr[0]);
+	put_info("rsp_old:\t", rbp_ptr[-1]);
+	put_info("rflags_old:\t", rbp_ptr[-2]);
+	put_info("cs_old:\t\t", rbp_ptr[-3]);
+	put_info("rip_old:\t", rbp_ptr[-4]);
 	while (1) {}
 }
 
