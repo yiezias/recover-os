@@ -33,5 +33,8 @@ void list_append(struct list *plist, struct list_elem *pelem);
 struct list_elem *list_pop(struct list *plist);
 /* 判断元素是否在链表内 */
 bool elem_find(struct list *plist, struct list_elem *pelem);
+/* 遍历链表寻找符合的元素 */
+typedef bool(function)(struct list_elem *, void *arg);
+struct list_elem *list_traversal(struct list *plist, function func, void *arg);
 
 #endif

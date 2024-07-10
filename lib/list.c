@@ -47,3 +47,14 @@ bool elem_find(struct list *plist, struct list_elem *pelem) {
 	}
 	return false;
 }
+
+struct list_elem *list_traversal(struct list *plist, function func, void *arg) {
+	struct list_elem *elem = plist->head.next;
+	while (elem != &plist->tail) {
+		if (func(elem, arg)) {
+			return elem;
+		}
+		elem = elem->next;
+	}
+	return NULL;
+}
