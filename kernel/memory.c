@@ -30,7 +30,7 @@ static void kernel_mem_pool_init(void) {
 }
 
 
-void *kalloc_pages(size_t pg_cnt) {
+void *alloc_pages(size_t pg_cnt) {
 	sema_down(&kernel_mem_pool.lock);
 	ssize_t idx = bitmap_alloc(&kernel_mem_pool.pool_bitmap, pg_cnt);
 	sema_up(&kernel_mem_pool.lock);
@@ -42,7 +42,7 @@ void *kalloc_pages(size_t pg_cnt) {
 	return (void *)(kernel_mem_pool.start + idx * PG_SIZE);
 }
 
-void kfree_pages(void *vaddr, size_t pg_cnt) {
+void free_pages(void *vaddr, size_t pg_cnt) {
 	size_t idx_start = (size_t)(vaddr - kernel_mem_pool.start) / PG_SIZE;
 
 	sema_down(&kernel_mem_pool.lock);
@@ -90,7 +90,7 @@ static struct arena *block2arena(struct block *b) {
 }
 
 static struct arena *arena_init(size_t desc_idx) {
-	struct arena *a = kalloc_pages(1);
+	struct arena *a = alloc_pages(1);
 	a->desc = k_block_descs + desc_idx;
 	a->free_block_cnt =
 		(PG_SIZE - sizeof(struct arena)) / (a->desc->block_size);
@@ -137,7 +137,7 @@ void kfree(void *addr) {
 			ASSERT(elem_find(&a->desc->free_list, &b->free_elem));
 			list_remove(&b->free_elem);
 		}
-		kfree_pages(a, 1);
+		free_pages(a, 1);
 	}
 	sema_up(&a->desc->lock);
 }
@@ -147,7 +147,7 @@ void mem_init(void) {
 
 	kernel_mem_pool_init();
 	block_desc_init(k_block_descs);
-	tss.ist1 = (size_t)kalloc_pages(1) + PG_SIZE;
+	tss.ist1 = (size_t)alloc_pages(1) + PG_SIZE;
 
 	put_str("mem_init: end\n");
 }

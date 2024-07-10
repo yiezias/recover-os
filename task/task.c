@@ -91,7 +91,7 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 
 struct task_struct *create_task(size_t stack, void *entry, void *args,
 				char *name, uint8_t prio, bool su) {
-	struct task_struct *task = kalloc_pages(1);
+	struct task_struct *task = alloc_pages(1);
 	init_task(task, name, prio);
 	task->status = TASK_READY;
 	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
@@ -103,7 +103,7 @@ struct task_struct *create_task(size_t stack, void *entry, void *args,
 }
 
 static void make_main_task(void) {
-	struct task_struct *main_task = kalloc_pages(1);
+	struct task_struct *main_task = alloc_pages(1);
 	put_info("main_task: ", (size_t)main_task);
 
 	tss.ist2 = (size_t)main_task + PG_SIZE;
@@ -117,7 +117,7 @@ static void make_main_task(void) {
 }
 
 static void idle_task_init(void) {
-	idle_task = create_task((size_t)kalloc_pages(1) + PG_SIZE, idle, NULL,
+	idle_task = create_task((size_t)alloc_pages(1) + PG_SIZE, idle, NULL,
 				"idle", 30, 0);
 
 	idle_task->intr_stack->cs = SELECTOR_K_CODE;
