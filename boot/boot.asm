@@ -22,6 +22,18 @@ mbr_start:
 	;跳转到loader_start
 	jmp 	0:loader_start+loader_base-mbr_size
 
+	times 446-($-$$) 	db 	0
+	;手动分区
+	db 	0x80
+	db 	0x20
+	db 	0x21
+	db 	0x0
+	db 	0x83
+	db 	0x40
+	db 	0x3f
+	db 	0x1
+	dd 	2048
+	dd 	18112
 	;填充mbr扇区，并在结尾写上可启动标志
 	times 510-($-$$) 	db 	0
 	dw 	0xaa55
