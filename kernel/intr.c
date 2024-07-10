@@ -1,4 +1,5 @@
 #include "intr.h"
+#include "task.h"
 #include "global.h"
 #include "io.h"
 
@@ -45,6 +46,8 @@ static void general_intr_handle(int intr_nr, uint64_t *rbp_ptr) {
 	put_info("rflags_old:\t", rbp_ptr[-2]);
 	put_info("cs_old:\t\t", rbp_ptr[-3]);
 	put_info("rip_old:\t", rbp_ptr[-4]);
+	put_str("task:\t");
+	put_str(running_task()->name);
 	while (1) {}
 }
 
