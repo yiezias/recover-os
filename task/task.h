@@ -6,6 +6,7 @@
 void task_init(void);
 
 struct intr_stack {
+	uint64_t sregs;
 	uint64_t rsi;
 	uint64_t rdi;
 	uint64_t rbp;

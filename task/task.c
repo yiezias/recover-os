@@ -84,6 +84,7 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 		task->intr_stack->cs = SELECTOR_K_CODE;
 		task->intr_stack->ss = SELECTOR_K_DATA;
 	}
+	task->intr_stack->sregs = 0;
 	task->intr_stack->rsp = stack;
 	task->intr_stack->rip = (size_t)entry;
 	task->intr_stack->rdi = (size_t)args;
