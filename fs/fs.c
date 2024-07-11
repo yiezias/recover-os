@@ -78,9 +78,20 @@ static void partition_format(void) {
 	block_modify(0, super_block_bid, sb, BLOCK_SIZE, 0);
 	bitmap_format(sb->block_bitmap_start, block_bitmap_bcnt, block_cnt,
 		      1 + block_bitmap_bcnt + inode_bitmap_bcnt
-			      + inode_table_bcnt + 1);
+			      + inode_table_bcnt);
 	bitmap_format(sb->inode_bitmap_start, inode_bitmap_bcnt, INODE_CNT_MAX,
-		      1);
+		      0);
+}
+
+static void create_root_dir(void) {
+	ASSERT(disk_inode_create() == 0);
+
+	struct inode *root_inode = inode_open(0);
+	struct dirent de = { 0, "..", FT_DIR };
+	ASSERT(dirent_add(root_inode, &de) > 0);
+	de.filename[1] = 0;
+	ASSERT(dirent_add(root_inode, &de) > 0);
+	inode_close(root_inode);
 }
 
 void filesys_init(void) {
@@ -90,7 +101,8 @@ void filesys_init(void) {
 
 	sb = alloc_pages(1);
 	block_read(0, cur_part->start_lba / SECTS_PER_BLOCK, sb, BLOCK_SIZE, 0);
-	if (sb->magic != SB_MAGIC) {
+	bool hasfs = sb->magic == SB_MAGIC;
+	if (!hasfs) {
 		partition_format();
 		block_read(0, cur_part->start_lba / SECTS_PER_BLOCK, sb,
 			   BLOCK_SIZE, 0);
@@ -105,6 +117,10 @@ void filesys_init(void) {
 	list_init(&open_inodes);
 	sema_init(&open_inodes_lock, 1);
 	sema_init(&fs_bitmap_lock, 1);
+
+	if (!hasfs) {
+		create_root_dir();
+	}
 
 	put_str("filesys_init: end\n");
 }
