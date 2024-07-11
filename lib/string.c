@@ -22,3 +22,13 @@ char *strcpy(char *dst, const char *src) {
 	while ((*dst++ = *src++)) {}
 	return ret;
 }
+
+int strcmp(const char *a, const char *b) {
+	ASSERT(a && b);
+	while (*a != 0 && *a == *b) {
+		++a;
+		++b;
+	}
+
+	return *a - *b;
+}
