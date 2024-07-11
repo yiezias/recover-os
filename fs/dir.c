@@ -1,6 +1,6 @@
 #include "dir.h"
-#include "global.h"
 #include "debug.h"
+#include "global.h"
 #include "memory.h"
 #include "string.h"
 
@@ -86,7 +86,7 @@ struct inode *path_prase(const char *pathname, struct dirent *de_buf) {
 	ssize_t de_idx = dirent_search(inode, old_idx + 1);
 	if (de_idx < 0) {
 		de_buf->i_no = ULONG_MAX;
-		memcpy(de_buf->filename, old_idx + 1, idx - old_idx - 1);
+		memcpy(de_buf->filename, old_idx + 1, idx - old_idx);
 	} else {
 		inode_read(inode, de_buf, sizeof(struct dirent),
 			   de_idx * DIRENT_SIZE);

@@ -123,8 +123,18 @@ void filesys_init(void) {
 		sys_mkdir("/dev");
 		put_info("idx\t", dirent_search(inode_open(0), "dev"));
 	}
-	sys_rmdir("/dev");
-	put_info("idx\t", dirent_search(inode_open(0), "dev"));
+	ASSERT(!sys_mkdir("/dev/block"));
+	put_info("idx\t", dirent_search(inode_open(1), "block"));
+	ASSERT(!sys_mkdir("/dev/block/a"));
+	put_info("idx\t", dirent_search(inode_open(2), "a"));
+	ASSERT(!sys_mkdir("/dev/block/a/b"));
+	put_info("idx\t", dirent_search(inode_open(3), "b"));
 
+	ASSERT(!sys_rmdir("/dev/block/a/b"));
+	put_info("idx\t", dirent_search(inode_open(3), "b"));
+	ASSERT(!sys_rmdir("/dev/block/a"));
+	put_info("idx\t", dirent_search(inode_open(2), "a"));
+	ASSERT(!sys_rmdir("/dev/block"));
+	put_info("idx\t", dirent_search(inode_open(1), "block"));
 	put_str("filesys_init: end\n");
 }
