@@ -13,6 +13,7 @@ struct super_block {
 	size_t data_start;
 };
 
+extern struct super_block *sb;
 void filesys_init(void);
 
 #endif

@@ -101,5 +101,25 @@ void filesys_init(void) {
 	put_info("inode_cnt_max:\t\t0x", sb->inode_cnt_max);
 	put_info("data_start:\t\t0x", sb->data_start);
 
+	list_init(&open_inodes);
+	sema_init(&open_inodes_lock, 1);
+	sema_init(&fs_bitmap_lock, 1);
+
+	/* 简单验证一下inode.c */
+	disk_inode_create();
+	disk_inode_delete(1);
+	size_t i_no = disk_inode_create();
+	put_info("i_no\t", i_no);
+	struct inode *inode = inode_open(i_no);
+	inode_write(inode, "Pendant", 5, 6);
+	char buf[10] = { 0 };
+	inode_read(inode, buf, 7, 7);
+	put_str(buf);
+	inode_close(inode);
+
+	inode = inode_open(i_no);
+	put_info("size\t0x", inode->disk_inode.file_size);
+	inode_close(inode);
+
 	put_str("filesys_init: end\n");
 }
