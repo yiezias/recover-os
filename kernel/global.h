@@ -10,4 +10,6 @@
 
 #define DIV_ROUND_UP(X, STEP) (((X) + (STEP)-1) / (STEP))
 
+#define ULONG_MAX 0xffffffffffffffff
+
 #endif

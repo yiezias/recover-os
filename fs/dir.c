@@ -1,4 +1,5 @@
 #include "dir.h"
+#include "global.h"
 #include "debug.h"
 #include "memory.h"
 #include "string.h"
@@ -46,7 +47,7 @@ ssize_t dirent_delete(struct inode *dir_inode, const char *name) {
 	return 0;
 }
 
-struct inode *path_prase(const char *pathname, ssize_t *i_no_ptr) {
+struct inode *path_prase(const char *pathname, struct dirent *de_buf) {
 	char *old_idx = (char *)pathname;
 	char *idx = old_idx + 1;
 	struct inode *inode = inode_open(0);
@@ -84,14 +85,84 @@ struct inode *path_prase(const char *pathname, ssize_t *i_no_ptr) {
 	sema_down(&inode->inode_lock);
 	ssize_t de_idx = dirent_search(inode, old_idx + 1);
 	if (de_idx < 0) {
-		*i_no_ptr = -FILE_ISNT_EXIST;
+		de_buf->i_no = ULONG_MAX;
+		memcpy(de_buf->filename, old_idx + 1, idx - old_idx - 1);
 	} else {
-		struct dirent *de = kalloc(DIRENT_SIZE);
-		inode_read(inode, de, sizeof(struct dirent),
+		inode_read(inode, de_buf, sizeof(struct dirent),
 			   de_idx * DIRENT_SIZE);
-		*i_no_ptr = de->i_no;
-		kfree(de);
 	}
 	sema_up(&inode->inode_lock);
 	return inode;
+}
+
+ssize_t sys_mkdir(char *pathname) {
+	/* path必须目标不存在但父目录存在 */
+	struct dirent de_buf;
+	struct inode *parent_inode = path_prase(pathname, &de_buf);
+	if (parent_inode == NULL) {
+		return -DIRENT_ISNT_EXIST;
+	} else if (de_buf.i_no != ULONG_MAX) {
+		inode_close(parent_inode);
+		return -DIRENT_ALREADY_EXIST;
+	}
+	/* 分配inode */
+	sema_down(&parent_inode->inode_lock);
+	ssize_t i_no = disk_inode_create();
+	if (i_no < 0) {
+		sema_up(&parent_inode->inode_lock);
+		inode_close(parent_inode);
+		return i_no;
+	}
+	/* 父目录添加目录项 */
+	struct dirent de = { i_no, { 0 }, FT_DIR };
+	strcpy(de.filename, de_buf.filename);
+	dirent_add(parent_inode, &de);
+
+	sema_up(&parent_inode->inode_lock);
+	inode_close(parent_inode);
+
+	/* 子目录添加.和..两个目录项 */
+	struct dirent dot = { i_no, ".", FT_DIR };
+	struct dirent ddot = { parent_inode->i_no, "..", FT_DIR };
+	struct inode *inode = inode_open(i_no);
+	sema_down(&inode->inode_lock);
+	dirent_add(inode, &dot);
+	dirent_add(inode, &ddot);
+	sema_up(&inode->inode_lock);
+	inode_close(inode);
+
+	return 0;
+}
+
+ssize_t sys_rmdir(char *pathname) {
+	struct dirent de_buf;
+	struct inode *parent_inode = path_prase(pathname, &de_buf);
+	if (parent_inode == NULL) {
+		return -DIRENT_ISNT_EXIST;
+	} else if (de_buf.i_no == ULONG_MAX) {
+		inode_close(parent_inode);
+		return FILE_ISNT_EXIST;
+	}
+
+	/* 判断搜索到的是不是目录 */
+	if (de_buf.f_type != FT_DIR) {
+		inode_close(parent_inode);
+		return -ISNT_DIR;
+	}
+	/* 判断目录是否为空 */
+	struct inode *inode = inode_open(de_buf.i_no);
+	sema_down(&inode->inode_lock);
+	bool empty = (inode->disk_inode.file_size == 2 * DIRENT_SIZE);
+	sema_up(&inode->inode_lock);
+	inode_close(inode);
+	if (!empty) {
+		inode_close(parent_inode);
+		return -DIR_ISNT_EMPTY;
+	}
+	/* 准备就绪 */
+	disk_inode_delete(de_buf.i_no);
+	sema_down(&parent_inode->inode_lock);
+	dirent_delete(parent_inode, de_buf.filename);
+	sema_up(&parent_inode->inode_lock);
+	return 0;
 }

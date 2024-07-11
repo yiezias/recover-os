@@ -120,7 +120,11 @@ void filesys_init(void) {
 
 	if (!hasfs) {
 		create_root_dir();
+		sys_mkdir("/dev");
+		put_info("idx\t", dirent_search(inode_open(0), "dev"));
 	}
+	sys_rmdir("/dev");
+	put_info("idx\t", dirent_search(inode_open(0), "dev"));
 
 	put_str("filesys_init: end\n");
 }
