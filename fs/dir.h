@@ -15,6 +15,12 @@ struct dirent {
 	enum file_types f_type;
 };
 
+struct stat {
+	size_t ino;
+	enum file_types file_type;
+	size_t size;
+};
+
 #define DIRENT_ISNT_EXIST 3
 #define DIRENT_ALREADY_EXIST 4
 #define FILE_ISNT_EXIST 5
@@ -27,4 +33,5 @@ ssize_t dirent_delete(struct inode *dir_inode, const char *name);
 ssize_t path_prase(const char *pathname, struct dirent *de_buf);
 ssize_t sys_mkdir(char *pathname);
 ssize_t sys_rmdir(char *pathname);
+ssize_t sys_stat(char *pathname, struct stat *stat_buf);
 #endif

@@ -96,6 +96,8 @@ static void create_root_dir(void) {
 
 void filesys_init(void) {
 	put_str("filesys_init: start\n");
+	ASSERT(sizeof(struct disk_inode) <= DISK_INODE_SIZE);
+	ASSERT(sizeof(struct dirent) <= DIRENT_SIZE);
 
 	mbr_init();
 

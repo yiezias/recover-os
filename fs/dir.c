@@ -168,3 +168,22 @@ ssize_t sys_rmdir(char *pathname) {
 	inode_close(parent_inode);
 	return 0;
 }
+
+ssize_t sys_stat(char *pathname, struct stat *stat_buf) {
+	struct dirent de_buf;
+	ssize_t p_i_no = path_prase(pathname, &de_buf);
+	if (p_i_no == -DIRENT_ISNT_EXIST) {
+		return p_i_no;
+	} else if (de_buf.i_no == ULONG_MAX) {
+		return -FILE_ISNT_EXIST;
+	}
+
+	stat_buf->ino = de_buf.i_no;
+	stat_buf->file_type = de_buf.f_type;
+	struct inode *inode = inode_open(de_buf.i_no);
+	sema_down(&inode->inode_lock);
+	stat_buf->size = inode->disk_inode.file_size;
+	sema_up(&inode->inode_lock);
+	inode_close(inode);
+	return 0;
+}
