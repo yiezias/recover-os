@@ -24,7 +24,7 @@ struct dirent {
 ssize_t dirent_search(struct inode *dir_inode, const char *name);
 ssize_t dirent_add(struct inode *dir_inode, struct dirent *de);
 ssize_t dirent_delete(struct inode *dir_inode, const char *name);
-struct inode *path_prase(const char *pathname, struct dirent *de_buf);
+ssize_t path_prase(const char *pathname, struct dirent *de_buf);
 ssize_t sys_mkdir(char *pathname);
 ssize_t sys_rmdir(char *pathname);
 #endif
