@@ -60,6 +60,9 @@ static void init_task(struct task_struct *task, char *name, uint8_t prio) {
 
 	task->intr_stack = (struct intr_stack *)((size_t)task + PG_SIZE
 						 - sizeof(struct intr_stack));
+	for (size_t i = 0; i != MAX_FILES_OPEN_PER_PROC; ++i) {
+		task->fd_table[i] = -1;
+	}
 }
 
 struct task_stack {

@@ -25,6 +25,7 @@ enum task_status {
 	TASK_BLOCKED,
 };
 
+#define MAX_FILES_OPEN_PER_PROC 32
 struct task_struct {
 	size_t rbp;
 
@@ -38,6 +39,7 @@ struct task_struct {
 	struct list_elem general_tag;
 	struct list_elem all_list_tag;
 
+	ssize_t fd_table[MAX_FILES_OPEN_PER_PROC];
 	struct intr_stack *intr_stack;
 
 	uint64_t stack_magic;
