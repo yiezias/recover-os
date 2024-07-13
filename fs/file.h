@@ -17,8 +17,15 @@ struct file {
 #define MAX_FILES_OPEN 4096
 #define FILE_TABLE_SIZE (PG_SIZE / (sizeof(struct file)))
 
+enum whence {
+	SEEK_SET,
+	SEEK_CUR,
+	SEEK_END,
+};
+
 ssize_t sys_open(const char *pathname);
 ssize_t sys_close(ssize_t fd);
+ssize_t sys_lseek(ssize_t fd, ssize_t offset, enum whence whence);
 
 extern struct file *file_table;
 extern struct semaphore file_table_lock;

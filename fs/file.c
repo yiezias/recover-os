@@ -80,3 +80,34 @@ ssize_t sys_close(ssize_t fd) {
 	cur_task->fd_table[fd] = -1;
 	return 0;
 }
+
+ssize_t sys_lseek(ssize_t fd, ssize_t offset, enum whence whence) {
+	ssize_t new_pos = 0;
+	ssize_t ft_idx = running_task()->fd_table[fd];
+	/* 判断参数是否合法 */
+	if (fd < 0 || fd > MAX_FILES_OPEN_PER_PROC || ft_idx < 0
+	    || ft_idx >= (ssize_t)FILE_TABLE_SIZE) {
+		return -FD_INVALID;
+	}
+	sema_down(&file_table_lock);
+	struct file *pf = file_table + ft_idx;
+	ssize_t file_size = pf->f_inode->disk_inode.file_size;
+	switch (whence) {
+	case SEEK_SET:
+		new_pos = offset;
+		break;
+	case SEEK_CUR:
+		new_pos = pf->f_pos + offset;
+		break;
+	case SEEK_END:
+		new_pos = file_size + offset;
+		break;
+	}
+	if (new_pos < 0 || new_pos > file_size) {
+		sema_up(&file_table_lock);
+		return -1;
+	}
+	pf->f_pos = new_pos;
+	sema_up(&file_table_lock);
+	return new_pos;
+}
