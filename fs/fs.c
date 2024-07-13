@@ -2,6 +2,7 @@
 #include "bio.h"
 #include "debug.h"
 #include "dir.h"
+#include "file.h"
 #include "global.h"
 #include "ide.h"
 #include "inode.h"
@@ -119,6 +120,11 @@ void filesys_init(void) {
 	list_init(&open_inodes);
 	sema_init(&open_inodes_lock, 1);
 	sema_init(&fs_bitmap_lock, 1);
+
+	file_table = alloc_pages(1);
+	memset(file_table, 0, PG_SIZE);
+	put_info("file table size:\t0x", FILE_TABLE_SIZE);
+	sema_init(&file_table_lock, 1);
 
 	if (!hasfs) {
 		create_root_dir();
