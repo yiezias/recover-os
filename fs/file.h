@@ -25,6 +25,7 @@ ssize_t sys_lseek(ssize_t fd, ssize_t offset, enum whence whence);
 ssize_t sys_read(ssize_t fd, void *buf, size_t count);
 ssize_t sys_mknod(const char *pathname, enum file_types type, ssize_t dev);
 ssize_t sys_unlink(const char *pathname);
+ssize_t sys_write(ssize_t fd, void *buf, size_t count);
 
 extern struct file *file_table;
 extern struct semaphore file_table_lock;

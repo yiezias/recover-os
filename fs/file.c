@@ -184,8 +184,34 @@ ssize_t sys_read(ssize_t fd, void *buf, size_t count) {
 	struct file *pf = file_table + ft_idx;
 	struct inode *inode = pf->f_inode;
 	ssize_t nbyte = 0;
-	if (pf->f_type == FT_DIR) {
+	if (pf->f_type == FT_DIR || pf->f_type == FT_REG) {
 		nbyte = inode_read(inode, buf, count, pf->f_pos);
+	} else if (pf->f_type == FT_CHR) {
+		;
+	}
+	if (nbyte > 0) {
+		pf->f_pos += nbyte;
+	}
+	sema_up(&file_table_lock);
+	return nbyte;
+}
+
+ssize_t sys_write(ssize_t fd, void *buf, size_t count) {
+	struct task_struct *cur_task = running_task();
+	ssize_t ft_idx = cur_task->fd_table[fd];
+	/* 判断参数是否合法 */
+	if (fd < 0 || fd > MAX_FILES_OPEN_PER_PROC || ft_idx < 0
+	    || ft_idx >= (ssize_t)FILE_TABLE_SIZE) {
+		return -FD_INVALID;
+	}
+	sema_down(&file_table_lock);
+	struct file *pf = file_table + ft_idx;
+	struct inode *inode = pf->f_inode;
+	ssize_t nbyte = 0;
+	if (pf->f_type == FT_REG) {
+		nbyte = inode_write(inode, buf, count, pf->f_pos);
+	} else if (pf->f_type == FT_CHR) {
+		;
 	}
 	if (nbyte > 0) {
 		pf->f_pos += nbyte;
