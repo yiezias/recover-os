@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "dir.h"
 #include "global.h"
+#include "string.h"
 #include "task.h"
 
 struct file *file_table;
@@ -31,6 +32,70 @@ static ssize_t free_fd_alloc(void) {
 		}
 	}
 	return i;
+}
+
+ssize_t sys_mknod(const char *pathname, enum file_types type, ssize_t dev) {
+	if (type != FT_CHR && type != FT_REG) {
+		return -FILE_TYPE_INVALID;
+	}
+	/* path必须目标不存在但父目录存在 */
+	struct dirent de_buf;
+	ssize_t p_i_no = path_prase(pathname, &de_buf);
+	if (p_i_no == -DIRENT_ISNT_EXIST) {
+		return p_i_no;
+	} else if (de_buf.i_no != ULONG_MAX) {
+		return -DIRENT_ALREADY_EXIST;
+	}
+	/* 分配inode */
+	if (type == FT_REG) {
+		dev = disk_inode_create();
+		if (dev < 0) {
+			return dev;
+		}
+	}
+	/* 父目录添加目录项 */
+	struct inode *parent_inode = inode_open(p_i_no);
+	sema_down(&parent_inode->inode_lock);
+	struct dirent de = { dev, { 0 }, type };
+	strcpy(de.filename, de_buf.filename);
+	ssize_t add_suc = dirent_add(parent_inode, &de);
+	if (add_suc != DIRENT_SIZE) {
+		if (type == FT_REG) {
+			disk_inode_delete(dev);
+		}
+		sema_up(&parent_inode->inode_lock);
+		inode_close(parent_inode);
+		return add_suc;
+	}
+	sema_up(&parent_inode->inode_lock);
+	inode_close(parent_inode);
+
+	return dev;
+}
+
+ssize_t sys_unlink(const char *pathname) {
+	struct dirent de_buf;
+	ssize_t p_i_no = path_prase(pathname, &de_buf);
+	if (p_i_no == -DIRENT_ISNT_EXIST) {
+		return p_i_no;
+	} else if (de_buf.i_no == ULONG_MAX) {
+		return -FILE_ISNT_EXIST;
+	}
+
+	/* 判断搜索到的是不是目录 */
+	if (de_buf.f_type == FT_DIR) {
+		return -ISNT_DIR;
+	}
+	/* 准备就绪 */
+	disk_inode_delete(de_buf.i_no);
+	struct inode *parent_inode = inode_open(p_i_no);
+	sema_down(&parent_inode->inode_lock);
+
+	dirent_delete(parent_inode, de_buf.filename);
+
+	sema_up(&parent_inode->inode_lock);
+	inode_close(parent_inode);
+	return 0;
 }
 
 ssize_t sys_open(const char *pathname) {

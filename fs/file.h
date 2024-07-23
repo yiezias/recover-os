@@ -1,8 +1,8 @@
 #ifndef __FS_FILE_H
 #define __FS_FILE_H
+#include "dir.h"
 #include "inode.h"
 #include "memory.h"
-#include "dir.h"
 
 struct file {
 	ssize_t f_pos;
@@ -23,10 +23,13 @@ ssize_t sys_open(const char *pathname);
 ssize_t sys_close(ssize_t fd);
 ssize_t sys_lseek(ssize_t fd, ssize_t offset, enum whence whence);
 ssize_t sys_read(ssize_t fd, void *buf, size_t count);
+ssize_t sys_mknod(const char *pathname, enum file_types type, ssize_t dev);
+ssize_t sys_unlink(const char *pathname);
 
 extern struct file *file_table;
 extern struct semaphore file_table_lock;
 
 #define FD_INVALID 8
+#define FILE_TYPE_INVALID 9
 
 #endif
