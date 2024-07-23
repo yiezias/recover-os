@@ -5,6 +5,8 @@
 
 enum file_types {
 	FT_DIR,
+	FT_CHR,
+	FT_REG,
 };
 
 #define DIRENT_SIZE 32
