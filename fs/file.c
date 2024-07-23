@@ -7,7 +7,7 @@
 struct file *file_table;
 struct semaphore file_table_lock;
 
-static ssize_t get_free_slot(struct inode *inode, enum file_mode mode) {
+static ssize_t get_free_slot(struct inode *inode, enum file_types f_type) {
 	ssize_t i = 0;
 	for (; i != FILE_TABLE_SIZE; ++i) {
 		if (file_table[i].f_inode == NULL) {
@@ -17,7 +17,7 @@ static ssize_t get_free_slot(struct inode *inode, enum file_mode mode) {
 	if (i != FILE_TABLE_SIZE) {
 		file_table[i].f_inode = inode;
 		file_table[i].f_pos = 0;
-		file_table[i].f_mode = mode;
+		file_table[i].f_type = f_type;
 	}
 	return i;
 }
@@ -45,14 +45,9 @@ ssize_t sys_open(const char *pathname) {
 	if (fd == MAX_FILES_OPEN_PER_PROC) {
 		return -fd;
 	}
-	/* 文件权限判断 */
-	enum file_mode mode = 0;
-	if (de_buf.f_type == FT_DIR) {
-		mode = readable;
-	}
 	/* 从文件表中找空闲位 */
 	sema_down(&file_table_lock);
-	ssize_t ft_idx = get_free_slot(inode_open(de_buf.i_no), mode);
+	ssize_t ft_idx = get_free_slot(inode_open(de_buf.i_no), de_buf.f_type);
 	sema_up(&file_table_lock);
 	if (ft_idx == FILE_TABLE_SIZE) {
 		return -ft_idx;
@@ -110,4 +105,26 @@ ssize_t sys_lseek(ssize_t fd, ssize_t offset, enum whence whence) {
 	pf->f_pos = new_pos;
 	sema_up(&file_table_lock);
 	return new_pos;
+}
+
+ssize_t sys_read(ssize_t fd, void *buf, size_t count) {
+	struct task_struct *cur_task = running_task();
+	ssize_t ft_idx = cur_task->fd_table[fd];
+	/* 判断参数是否合法 */
+	if (fd < 0 || fd > MAX_FILES_OPEN_PER_PROC || ft_idx < 0
+	    || ft_idx >= (ssize_t)FILE_TABLE_SIZE) {
+		return -FD_INVALID;
+	}
+	sema_down(&file_table_lock);
+	struct file *pf = file_table + ft_idx;
+	struct inode *inode = pf->f_inode;
+	ssize_t nbyte = 0;
+	if (pf->f_type == FT_DIR) {
+		nbyte = inode_read(inode, buf, count, pf->f_pos);
+	}
+	if (nbyte > 0) {
+		pf->f_pos += nbyte;
+	}
+	sema_up(&file_table_lock);
+	return nbyte;
 }
