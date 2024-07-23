@@ -1,5 +1,6 @@
 #include "dir.h"
 #include "debug.h"
+#include "file.h"
 #include "global.h"
 #include "memory.h"
 #include "string.h"
@@ -97,31 +98,21 @@ ssize_t path_prase(const char *pathname, struct dirent *de_buf) {
 }
 
 ssize_t sys_mkdir(char *pathname) {
-	/* path必须目标不存在但父目录存在 */
-	struct dirent de_buf;
-	ssize_t p_i_no = path_prase(pathname, &de_buf);
-	if (p_i_no == -DIRENT_ISNT_EXIST) {
-		return p_i_no;
-	} else if (de_buf.i_no != ULONG_MAX) {
-		return -DIRENT_ALREADY_EXIST;
-	}
-	/* 分配inode */
-	struct inode *parent_inode = inode_open(p_i_no);
-	sema_down(&parent_inode->inode_lock);
-	ssize_t i_no = disk_inode_create();
+	ssize_t i_no = sys_mknod(pathname, FT_REG, 0);
 	if (i_no < 0) {
-		sema_up(&parent_inode->inode_lock);
-		inode_close(parent_inode);
 		return i_no;
 	}
-	/* 父目录添加目录项 */
-	struct dirent de = { i_no, { 0 }, FT_DIR };
-	strcpy(de.filename, de_buf.filename);
+	struct dirent de;
+	ssize_t p_i_no = path_prase(pathname, &de);
+	ASSERT(p_i_no >= 0);
+	/* 修改dirent文件类型为dir */
+	struct inode *parent_inode = inode_open(p_i_no);
+	sema_down(&parent_inode->inode_lock);
+	dirent_delete(parent_inode, de.filename);
+	de.f_type = FT_DIR;
 	dirent_add(parent_inode, &de);
-
 	sema_up(&parent_inode->inode_lock);
 	inode_close(parent_inode);
-
 	/* 子目录添加.和..两个目录项 */
 	struct dirent dot = { i_no, ".", FT_DIR };
 	struct dirent ddot = { p_i_no, "..", FT_DIR };
@@ -131,7 +122,6 @@ ssize_t sys_mkdir(char *pathname) {
 	dirent_add(inode, &ddot);
 	sema_up(&inode->inode_lock);
 	inode_close(inode);
-
 	return 0;
 }
 
