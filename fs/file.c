@@ -1,4 +1,5 @@
 #include "file.h"
+#include "console.h"
 #include "debug.h"
 #include "dir.h"
 #include "global.h"
@@ -111,8 +112,10 @@ ssize_t sys_open(const char *pathname) {
 		return -fd;
 	}
 	/* 从文件表中找空闲位 */
+	struct inode *inode = de_buf.f_type == FT_CHR ? (struct inode *)&console
+						      : inode_open(de_buf.i_no);
 	sema_down(&file_table_lock);
-	ssize_t ft_idx = get_free_slot(inode_open(de_buf.i_no), de_buf.f_type);
+	ssize_t ft_idx = get_free_slot(inode, de_buf.f_type);
 	sema_up(&file_table_lock);
 	if (ft_idx == FILE_TABLE_SIZE) {
 		return -ft_idx;
@@ -133,7 +136,9 @@ ssize_t sys_close(ssize_t fd) {
 	/* 置文件表对应位为空闲 */
 	sema_down(&file_table_lock);
 	ASSERT(file_table[ft_idx].f_inode != NULL);
-	inode_close(file_table[ft_idx].f_inode);
+	if (file_table[ft_idx].f_type != FT_CHR) {
+		inode_close(file_table[ft_idx].f_inode);
+	}
 	file_table[ft_idx].f_inode = NULL;
 	sema_up(&file_table_lock);
 	/* 置进程文件描述符为空闲 */
@@ -184,11 +189,16 @@ ssize_t sys_read(ssize_t fd, void *buf, size_t count) {
 	struct file *pf = file_table + ft_idx;
 	struct inode *inode = pf->f_inode;
 	ssize_t nbyte = 0;
+	/* 进行读操作 */
 	if (pf->f_type == FT_DIR || pf->f_type == FT_REG) {
+		sema_down(&inode->inode_lock);
 		nbyte = inode_read(inode, buf, count, pf->f_pos);
+		sema_up(&inode->inode_lock);
 	} else if (pf->f_type == FT_CHR) {
-		;
+		nbyte = count;
+		console_read(buf, count);
 	}
+
 	if (nbyte > 0) {
 		pf->f_pos += nbyte;
 	}
@@ -208,11 +218,16 @@ ssize_t sys_write(ssize_t fd, void *buf, size_t count) {
 	struct file *pf = file_table + ft_idx;
 	struct inode *inode = pf->f_inode;
 	ssize_t nbyte = 0;
+	/* 进行写操作 */
 	if (pf->f_type == FT_REG) {
+		sema_down(&inode->inode_lock);
 		nbyte = inode_write(inode, buf, count, pf->f_pos);
+		sema_up(&file_table_lock);
 	} else if (pf->f_type == FT_CHR) {
-		;
+		nbyte = count;
+		console_write(buf, count);
 	}
+
 	if (nbyte > 0) {
 		pf->f_pos += nbyte;
 	}

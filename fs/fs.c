@@ -128,7 +128,9 @@ void filesys_init(void) {
 
 	if (!hasfs) {
 		create_root_dir();
-		sys_mkdir("/dev");
+		ASSERT(sys_mkdir("/dev") == 0);
+		ASSERT(sys_mknod("/dev/stdin", FT_CHR, 0) == 0);
+		ASSERT(sys_mknod("/dev/stdout", FT_CHR, 1) == 1);
 	}
 	put_str("filesys_init: end\n");
 }

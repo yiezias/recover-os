@@ -1,4 +1,7 @@
 #include "bio.h"
+#include "console.h"
+#include "debug.h"
+#include "file.h"
 #include "fs.h"
 #include "ide.h"
 #include "intr.h"
@@ -26,7 +29,16 @@ int main(void) {
 		keyboard_init();
 		ide_init();
 		filesys_init();
+		console_init();
 	}
+	uint8_t buf[10];
+	ssize_t fd = sys_open("/dev/stdin");
+	ASSERT(fd >= 0);
+	for (size_t i = 0; i != 10; ++i) {
+		sys_read(fd, buf, 1);
+		sys_write(fd, buf, 1);
+	}
+
 	set_intr_stat(intr_on);
 	sema_init(&sema, 1);
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_a,
