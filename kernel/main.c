@@ -3,6 +3,7 @@
 #include "debug.h"
 #include "file.h"
 #include "fs.h"
+#include "global.h"
 #include "ide.h"
 #include "intr.h"
 #include "keyboard.h"
@@ -16,6 +17,8 @@
 void task_a(void *arg);
 void task_b(void *arg);
 struct semaphore sema;
+
+void init(void);
 
 int main(void) {
 	cls_screen();
@@ -31,12 +34,12 @@ int main(void) {
 		filesys_init();
 		console_init();
 	}
-	uint8_t buf[10];
+	//  uint8_t buf[10];
 	ssize_t fd = sys_open("/dev/stdin");
 	ASSERT(fd >= 0);
 	for (size_t i = 0; i != 10; ++i) {
-		sys_read(fd, buf, 1);
-		sys_write(fd, buf, 1);
+		//	sys_read(fd, buf, 1);
+		//	sys_write(fd, buf, 1);
 	}
 
 	set_intr_stat(intr_on);
@@ -45,8 +48,24 @@ int main(void) {
 		    "\x1b\x0ctask_a: ", "task_a", 30, 0);
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_b,
 		    "\x1b\x09task_b: ", "task_b", 30, 0);
+
+	/* 切换到用户态 */
+	struct intr_stack *i_stack = alloc_pages(1);
+	i_stack->sregs = 0;
+	i_stack->cs = SELECTOR_U_CODE;
+	i_stack->ss = SELECTOR_U_DATA;
+	i_stack->rip = (uint64_t)init;
+	// i_stack->rsp = ;
+	i_stack->rflags = 0x202;
+	//	asm volatile("movq %0,%%rbp;jmp intr_exit" ::"g"(&i_stack->rbp)
+	//		     : "memory");
 	while (1) {}
 	return 0;
+}
+
+void init(void) {
+	set_intr_stat(intr_off);
+	while (1) {}
 }
 
 void task_a(void *arg) {
