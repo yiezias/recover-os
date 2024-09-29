@@ -7,53 +7,64 @@
 #include "sync.h"
 #include "tss.h"
 
-struct {
+struct mem_pool {
 	size_t start;
 	struct bitmap pool_bitmap;
 	struct semaphore lock;
-} kernel_mem_pool;
+} kernel_mem_pool, phy_mem_pool;
 
 
 /* 内存池虚拟地址为0xffff800000104000到0xffff8000001fffff
  * 总共1MB 252页，已经在引导中与物理地址映射完成，可以自由访问 */
-
-static void kernel_mem_pool_init(void) {
-	kernel_mem_pool.start = 0xffff800000104000;
-	const size_t btmp_bytes_len = 252 / 8;
-
-	static uint8_t kernel_mem_pool_bitmap[252 / 8] = { 0 };
-
-	kernel_mem_pool.pool_bitmap.bytes_len = btmp_bytes_len;
-	kernel_mem_pool.pool_bitmap.bits = kernel_mem_pool_bitmap;
-
-	bitmap_init(&kernel_mem_pool.pool_bitmap);
-	sema_init(&kernel_mem_pool.lock, 1);
+static void mem_pool_init(struct mem_pool *mem_pool, size_t start,
+			  size_t btmp_bytes_len, uint8_t *bits, size_t res) {
+	mem_pool->start = start;
+	mem_pool->pool_bitmap.bytes_len = btmp_bytes_len;
+	mem_pool->pool_bitmap.bits = bits;
+	bitmap_init(&mem_pool->pool_bitmap);
+	sema_init(&mem_pool->lock, 1);
+	for (size_t i = 0; i != res; ++i) {
+		bitmap_set(&mem_pool->pool_bitmap, i, 1);
+	}
 }
 
-
-void *alloc_pages(size_t pg_cnt) {
-	sema_down(&kernel_mem_pool.lock);
-	ssize_t idx = bitmap_alloc(&kernel_mem_pool.pool_bitmap, pg_cnt);
-	sema_up(&kernel_mem_pool.lock);
+static size_t pool_alloc(struct mem_pool *mem_pool, size_t pg_cnt) {
+	sema_down(&mem_pool->lock);
+	ssize_t idx = bitmap_alloc(&mem_pool->pool_bitmap, pg_cnt);
+	sema_up(&mem_pool->lock);
 
 	if (idx == -1) {
+		if (mem_pool == &kernel_mem_pool) {
+			put_str("\n\nkernel_pool:\n");
+		} else if (mem_pool == &phy_mem_pool) {
+			put_str("\n\nphy_pool:\n");
+		}
 		PANIC("there isn't any free page\n");
-		return NULL;
+		return -1;
 	}
-	return (void *)(kernel_mem_pool.start + idx * PG_SIZE);
+	return (mem_pool->start + idx * PG_SIZE);
+}
+
+static void pool_free(struct mem_pool *mem_pool, size_t addr, size_t pg_cnt) {
+	size_t idx_start = (size_t)(addr - mem_pool->start) / PG_SIZE;
+
+	sema_down(&mem_pool->lock);
+	for (size_t i = 0; i != pg_cnt; ++i) {
+		ASSERT(bitmap_read(&mem_pool->pool_bitmap, idx_start + i));
+		bitmap_set(&mem_pool->pool_bitmap, idx_start + i, 0);
+	}
+	sema_up(&mem_pool->lock);
+}
+
+void *alloc_pages(size_t pg_cnt) {
+	return (void *)(pool_alloc(&kernel_mem_pool, pg_cnt));
 }
 
 void free_pages(void *vaddr, size_t pg_cnt) {
-	size_t idx_start = (size_t)(vaddr - kernel_mem_pool.start) / PG_SIZE;
-
-	sema_down(&kernel_mem_pool.lock);
-	for (size_t i = 0; i != pg_cnt; ++i) {
-		ASSERT(bitmap_read(&kernel_mem_pool.pool_bitmap,
-				   idx_start + i));
-		bitmap_set(&kernel_mem_pool.pool_bitmap, idx_start + i, 0);
-	}
-	sema_up(&kernel_mem_pool.lock);
+	pool_free(&kernel_mem_pool, (size_t)vaddr, pg_cnt);
 }
+
+
 
 struct block {
 	struct list_elem free_elem;
@@ -167,11 +178,17 @@ static void map_all_phy_mem(void) {
 void mem_init(void) {
 	put_str("mem_init: start\n");
 
-	kernel_mem_pool_init();
+	static uint8_t kernel_mem_pool_bitmap[252 / 8] = { 0 };
+	static uint8_t phy_mem_pool_bitmap[mem_bytes_total >> 12 / 8] = { 0 };
+
+	mem_pool_init(&kernel_mem_pool, 0xffff800000104000, 252 / 8,
+		      kernel_mem_pool_bitmap, 0);
 	block_desc_init(k_block_descs);
 	tss.ist1 = (size_t)alloc_pages(1) + PG_SIZE;
 
 	map_all_phy_mem();
+	mem_pool_init(&phy_mem_pool, 0, mem_bytes_total >> 12 / 8,
+		      phy_mem_pool_bitmap, 0x200000 >> 12);
 
 	put_str("mem_init: end\n");
 }
