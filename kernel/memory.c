@@ -1,6 +1,7 @@
 #include "memory.h"
 #include "bitmap.h"
 #include "debug.h"
+#include "global.h"
 #include "list.h"
 #include "print.h"
 #include "sync.h"
@@ -142,12 +143,35 @@ void kfree(void *addr) {
 	sema_up(&a->desc->lock);
 }
 
+
+#define mem_bytes_total 0x8000000
+/* 物理地址空间前1M作为代码数据所需空间，第二个1M作为内核内存池，
+ * 剩下126M全部映射到内核空间 */
+static void map_all_phy_mem(void) {
+	size_t pte_cnt = DIV_ROUND_UP(mem_bytes_total, PG_SIZE);
+	size_t pdte_cnt = DIV_ROUND_UP(pte_cnt, 512);
+	ASSERT(pdte_cnt < 512);
+
+	uint64_t *pdt_virt = (uint64_t *)0xffff800000102000;
+	/* 本就不富裕的内存池又少了64页 */
+	void *pts = alloc_pages(pdte_cnt - 1) - PG_SIZE - kernel_addr_base;
+	for (size_t i = 1; i != pdte_cnt; ++i) {
+		uint64_t *pt = pts + i * PG_SIZE;
+		pdt_virt[i] = (uint64_t)(pt) + 7;
+		for (size_t j = 0; j != 512; ++j) {
+			pt[j] = i * 0x200000 + j * PG_SIZE + 7;
+		}
+	}
+}
+
 void mem_init(void) {
 	put_str("mem_init: start\n");
 
 	kernel_mem_pool_init();
 	block_desc_init(k_block_descs);
 	tss.ist1 = (size_t)alloc_pages(1) + PG_SIZE;
+
+	map_all_phy_mem();
 
 	put_str("mem_init: end\n");
 }

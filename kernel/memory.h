@@ -2,6 +2,8 @@
 #define __KERNEL_MEMORY_H
 #include "types.h"
 
+#define kernel_addr_base 0xffff800000000000
+
 void mem_init(void);
 
 #define PG_SIZE 4096
