@@ -37,13 +37,6 @@ int main(void) {
 		console_init();
 		syscall_init();
 	}
-	//  uint8_t buf[10];
-	ssize_t fd = sys_open("/dev/stdin");
-	ASSERT(fd >= 0);
-	for (size_t i = 0; i != 10; ++i) {
-		//	sys_read(fd, buf, 1);
-		//	sys_write(fd, buf, 1);
-	}
 
 	set_intr_stat(intr_on);
 	sema_init(&sema, 1);
@@ -52,6 +45,7 @@ int main(void) {
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_b,
 		    "\x1b\x09task_b: ", "task_b", 30, 0);
 
+	sys_open("/dev/stdout");
 	/* 切换到用户态 */
 	struct intr_stack *i_stack = alloc_pages(1);
 	i_stack->sregs = 0;
@@ -67,6 +61,10 @@ int main(void) {
 	page_map(stack - PG_SIZE);
 	i_stack->rsp = stack;
 
+	size_t str_ptr = 0x2000;
+	page_map(str_ptr);
+	memcpy((void *)str_ptr, "\n\x1b\x2fsyscall\n", 11);
+
 	i_stack->rflags = 0x202;
 	asm volatile("movq %0,%%rbp;jmp intr_exit" ::"g"(&i_stack->rbp)
 		     : "memory");
@@ -74,7 +72,9 @@ int main(void) {
 	return 0;
 }
 
+#include "syscall.h"
 void init(void) {
+	asm volatile("syscall" ::"a"(SYS_WRITE), "D"(0), "S"(0x2000), "d"(11));
 	while (1) {}
 }
 
