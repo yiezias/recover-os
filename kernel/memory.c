@@ -210,7 +210,8 @@ static uint64_t *page_entry_ptr(size_t vaddr, enum PML pml) {
 }
 
 
-static void page_map(size_t vaddr, size_t paddr) {
+static void page_map(size_t vaddr) {
+	size_t paddr = pool_alloc(&phy_mem_pool, 1);
 	for (int i = 0; i != 4; ++i) {
 		enum PML pml = 3 - i;
 		uint64_t *pep = page_entry_ptr(vaddr, pml);
@@ -221,6 +222,11 @@ static void page_map(size_t vaddr, size_t paddr) {
 			*pep = eaddr | PROT_P | PROT_W | PROT_U;
 		}
 	}
+}
+
+static void page_unmap(size_t vaddr) {
+	*page_entry_ptr(vaddr, pt) &= ~PROT_P;
+	asm volatile("invlpg %0" ::"m"(vaddr) : "memory");
 }
 
 
@@ -240,7 +246,9 @@ void mem_init(void) {
 		      phy_mem_pool_bitmap, 0x200000 >> 12);
 
 	uint8_t *vaddr = (uint8_t *)0x1000;
-	page_map((size_t)vaddr, pool_alloc(&phy_mem_pool, 1));
+	page_map((size_t)vaddr);
+	vaddr[0] = 0;
+	page_unmap((size_t)vaddr);
 	vaddr[0] = 0;
 	put_str("mem_init: end\n");
 }
