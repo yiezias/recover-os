@@ -4,6 +4,7 @@
 #include "global.h"
 #include "list.h"
 #include "print.h"
+#include "string.h"
 #include "sync.h"
 #include "tss.h"
 
@@ -155,6 +156,11 @@ void kfree(void *addr) {
 }
 
 
+#define PROT_P 1
+#define PROT_W 2
+#define PROT_U 4
+#define PROT_NX 0x8000000000000000
+
 #define mem_bytes_total 0x8000000
 /* 物理地址空间前1M作为代码数据所需空间，第二个1M作为内核内存池，
  * 剩下126M全部映射到内核空间 */
@@ -164,16 +170,59 @@ static void map_all_phy_mem(void) {
 	ASSERT(pdte_cnt < 512);
 
 	uint64_t *pdt_virt = (uint64_t *)0xffff800000102000;
+	uint64_t *pml4_virt = (uint64_t *)0xffff800000100000;
+	pml4_virt[0] = 0;
 	/* 本就不富裕的内存池又少了64页 */
-	void *pts = alloc_pages(pdte_cnt - 1) - PG_SIZE - kernel_addr_base;
+	void *pts = alloc_pages(pdte_cnt - 1) - PG_SIZE;
 	for (size_t i = 1; i != pdte_cnt; ++i) {
 		uint64_t *pt = pts + i * PG_SIZE;
-		pdt_virt[i] = (uint64_t)(pt) + 7;
+		pdt_virt[i] = ((uint64_t)(pt)-kernel_addr_base) | PROT_P
+			      | PROT_W | PROT_U;
 		for (size_t j = 0; j != 512; ++j) {
-			pt[j] = i * 0x200000 + j * PG_SIZE + 7;
+			pt[j] = (i * 0x200000 + j * PG_SIZE) | PROT_P | PROT_W
+				| PROT_U;
 		}
 	}
 }
+
+
+enum PML {
+	pt,   /* 12-20 bit */
+	pdt,  /* 21-29 bit */
+	pdpt, /* 30-38 bit */
+	pml4, /* 39-47 bit */
+};
+
+// 页目录项在页目录中的位置
+#define page_entry_idx(vaddr, pml) ((vaddr >> (9 * pml + 12)) & 0x1ff)
+// 页目录项地址
+static uint64_t *page_entry_ptr(size_t vaddr, enum PML pml) {
+	// 页目录地址
+	uint64_t *page_entry_page = NULL;
+	if (pml != pml4) {
+		uint64_t page_entry = *page_entry_ptr(vaddr, pml + 1);
+		page_entry_page = (uint64_t *)(kernel_addr_base
+					       + (page_entry & (~0xfff)));
+	} else {
+		page_entry_page = (uint64_t *)(kernel_addr_base + 0x100000);
+	}
+	return page_entry_page + page_entry_idx(vaddr, pml);
+}
+
+
+static void page_map(size_t vaddr, size_t paddr) {
+	for (int i = 0; i != 4; ++i) {
+		enum PML pml = 3 - i;
+		uint64_t *pep = page_entry_ptr(vaddr, pml);
+		put_info("pep\t", (size_t)pep);
+		if (!(*pep & PROT_P)) {
+			size_t eaddr = pml == pt ? paddr
+						 : pool_alloc(&phy_mem_pool, 1);
+			*pep = eaddr | PROT_P | PROT_W | PROT_U;
+		}
+	}
+}
+
 
 void mem_init(void) {
 	put_str("mem_init: start\n");
@@ -190,5 +239,8 @@ void mem_init(void) {
 	mem_pool_init(&phy_mem_pool, 0, mem_bytes_total >> 12 / 8,
 		      phy_mem_pool_bitmap, 0x200000 >> 12);
 
+	uint8_t *vaddr = (uint8_t *)0x1000;
+	page_map((size_t)vaddr, pool_alloc(&phy_mem_pool, 1));
+	vaddr[0] = 0;
 	put_str("mem_init: end\n");
 }
