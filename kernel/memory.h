@@ -13,4 +13,7 @@ void free_pages(void *vaddr, size_t pg_cnt);
 
 void *kalloc(size_t size);
 void kfree(void *addr);
+
+void page_map(size_t vaddr);
+void page_unmap(size_t vaddr);
 #endif
