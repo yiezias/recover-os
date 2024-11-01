@@ -11,6 +11,7 @@
 #include "print.h"
 #include "string.h"
 #include "sync.h"
+#include "syscall-init.h"
 #include "task.h"
 #include "timer.h"
 #include "tss.h"
@@ -34,6 +35,7 @@ int main(void) {
 		ide_init();
 		filesys_init();
 		console_init();
+		syscall_init();
 	}
 	//  uint8_t buf[10];
 	ssize_t fd = sys_open("/dev/stdin");
