@@ -9,6 +9,7 @@
 #include "keyboard.h"
 #include "memory.h"
 #include "print.h"
+#include "string.h"
 #include "sync.h"
 #include "task.h"
 #include "timer.h"
@@ -54,17 +55,24 @@ int main(void) {
 	i_stack->sregs = 0;
 	i_stack->cs = SELECTOR_U_CODE;
 	i_stack->ss = SELECTOR_U_DATA;
-	i_stack->rip = (uint64_t)init;
-	// i_stack->rsp = ;
+
+	size_t init_addr = 0x1000;
+	page_map(init_addr);
+	memcpy((void *)init_addr, init, PG_SIZE);
+	i_stack->rip = init_addr;
+
+	size_t stack = 0x800000000000;
+	page_map(stack - PG_SIZE);
+	i_stack->rsp = stack;
+
 	i_stack->rflags = 0x202;
-	//	asm volatile("movq %0,%%rbp;jmp intr_exit" ::"g"(&i_stack->rbp)
-	//		     : "memory");
+	asm volatile("movq %0,%%rbp;jmp intr_exit" ::"g"(&i_stack->rbp)
+		     : "memory");
 	while (1) {}
 	return 0;
 }
 
 void init(void) {
-	set_intr_stat(intr_off);
 	while (1) {}
 }
 

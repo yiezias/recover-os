@@ -245,10 +245,5 @@ void mem_init(void) {
 	mem_pool_init(&phy_mem_pool, 0, mem_bytes_total >> 12 / 8,
 		      phy_mem_pool_bitmap, 0x200000 >> 12);
 
-	uint8_t *vaddr = (uint8_t *)0x1000;
-	page_map((size_t)vaddr);
-	vaddr[0] = 0;
-	page_unmap((size_t)vaddr);
-	vaddr[0] = 0;
 	put_str("mem_init: end\n");
 }
