@@ -16,6 +16,18 @@ void memset(void *dst, uint8_t value, size_t size) {
 	}
 }
 
+int memcmp(const void *a, const void *b, size_t size) {
+	ASSERT(a != NULL || b != NULL);
+	while (size-- > 0) {
+		if (*(char *)a != *(char *)b) {
+			return *(char *)a - *(char *)b;
+		}
+		++a;
+		++b;
+	}
+	return 0;
+}
+
 char *strcpy(char *dst, const char *src) {
 	ASSERT(dst && src);
 	char *ret = dst;
