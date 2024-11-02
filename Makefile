@@ -16,10 +16,10 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)
      $(BUILD_DIR)/switch.o $(BUILD_DIR)/list.o $(BUILD_DIR)/sync.o $(BUILD_DIR)/ioqueue.o \
      $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/bio.o $(BUILD_DIR)/inode.o \
      $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o $(BUILD_DIR)/console.o $(BUILD_DIR)/syscall-init.o \
-     $(BUILD_DIR)/syscall.o $(BUILD_DIR)/system-call.o
+     $(BUILD_DIR)/syscall.o $(BUILD_DIR)/system-call.o $(BUILD_DIR)/init.o
 
 
-run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
+run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/init
 	bochs -q
 
 
@@ -63,6 +63,10 @@ $(BUILD_DIR)/%.d: userprog/%.[cS]
 	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
 	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
 
+$(BUILD_DIR)/%.d: command/%.[cS]
+	$(CC) $(CFLAGS) -MM $< -MT $(@:.d=.o) -o $@
+	@echo '	$$(CC) $$(CFLAGS) $$< -o $$@' >> $@
+
 
 
 # dd命令执行之前虚拟磁盘就已经存在了，
@@ -77,5 +81,8 @@ $(BUILD_DIR)/kernel.bin: $(OBJS) $(DISK)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
 	dd if=$@ of=$(DISK) bs=512 seek=3 conv=notrunc
 
+$(BUILD_DIR)/init: $(BUILD_DIR)/init.o $(DISK)
+	$(LD) $< -o $@ -e init_main
+	dd if=$@ of=$(DISK) bs=512 seek=200 conv=notrunc
 
 .PHONY: run clean

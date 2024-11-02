@@ -222,7 +222,7 @@ ssize_t sys_write(ssize_t fd, void *buf, size_t count) {
 	if (pf->f_type == FT_REG) {
 		sema_down(&inode->inode_lock);
 		nbyte = inode_write(inode, buf, count, pf->f_pos);
-		sema_up(&file_table_lock);
+		sema_up(&inode->inode_lock);
 	} else if (pf->f_type == FT_CHR) {
 		nbyte = count;
 		console_write(buf, count);
