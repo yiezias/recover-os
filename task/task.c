@@ -101,6 +101,8 @@ struct task_struct *create_task(size_t stack, void *entry, void *args,
 	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
 	list_append(&ready_tasks_list, &task->general_tag);
 
+	task->pml4 = alloc_pages(1);
+
 	create_task_envi(task, stack, entry, args, su);
 
 	return task;

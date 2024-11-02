@@ -39,6 +39,8 @@ struct task_struct {
 	struct list_elem general_tag;
 	struct list_elem all_list_tag;
 
+	uint64_t *pml4;
+
 	ssize_t fd_table[MAX_FILES_OPEN_PER_PROC];
 	struct intr_stack *intr_stack;
 

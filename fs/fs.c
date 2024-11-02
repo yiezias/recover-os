@@ -95,6 +95,17 @@ static void create_root_dir(void) {
 	inode_close(root_inode);
 }
 
+static void pre_write_file(char *filename, size_t sec_start) {
+	void *file_buf = alloc_pages(5);
+	ASSERT(sys_mknod(filename, FT_REG, 0) >= 0);
+	ide_read(0, sec_start, file_buf, 40);
+	ssize_t fd = sys_open(filename);
+	ASSERT(fd >= 0);
+	sys_write(fd, file_buf, 5 * PG_SIZE);
+	sys_close(fd);
+	free_pages(file_buf, 5);
+}
+
 void filesys_init(void) {
 	put_str("filesys_init: start\n");
 	ASSERT(sizeof(struct disk_inode) <= DISK_INODE_SIZE);
@@ -126,19 +137,14 @@ void filesys_init(void) {
 	put_info("file table size:\t0x", FILE_TABLE_SIZE);
 	sema_init(&file_table_lock, 1);
 
-	void *file_buf = alloc_pages(5);
 	if (!hasfs) {
 		create_root_dir();
 		ASSERT(sys_mkdir("/dev") == 0);
 		ASSERT(sys_mknod("/dev/stdin", FT_CHR, 0) == 0);
 		ASSERT(sys_mknod("/dev/stdout", FT_CHR, 1) == 1);
 
-		ASSERT(sys_mknod("/init", FT_REG, 0) >= 0);
-		ide_read(0, 200, file_buf, 40);
-		ssize_t fd = sys_open("/init");
-		ASSERT(fd >= 0);
-		sys_write(fd, file_buf, 5 * PG_SIZE);
-		sys_close(fd);
+		pre_write_file("/init", 200);
+		pre_write_file("/shell", 240);
 	}
 	put_str("filesys_init: end\n");
 }

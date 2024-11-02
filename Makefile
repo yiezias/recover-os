@@ -18,11 +18,11 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)
      $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o $(BUILD_DIR)/console.o $(BUILD_DIR)/syscall-init.o \
      $(BUILD_DIR)/system-call.o $(BUILD_DIR)/exec.o
 
-UOBJS=$(BUILD_DIR)/syscall.o $(BUILD_DIR)/init.o $(BUILD_DIR)/start.o
+UOBJS=$(BUILD_DIR)/syscall.o $(BUILD_DIR)/init.o $(BUILD_DIR)/start.o $(BUILD_DIR)/shell.o
 
 AOBJS=$(OBJS) $(UOBJS)
 
-run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/init
+run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/init $(BUILD_DIR)/shell
 	bochs -q
 
 
@@ -89,5 +89,9 @@ LDFLAGS2=$(UDEPS) -e _start
 $(BUILD_DIR)/init: $(BUILD_DIR)/init.o $(UDEPS) $(DISK)
 	$(LD) $< $(LDFLAGS2) -o $@
 	dd if=$@ of=$(DISK) bs=512 seek=200 conv=notrunc
+
+$(BUILD_DIR)/shell: $(BUILD_DIR)/shell.o $(UDEPS) $(DISK)
+	$(LD) $< $(LDFLAGS2) -o $@
+	dd if=$@ of=$(DISK) bs=512 seek=240 conv=notrunc
 
 .PHONY: run clean
