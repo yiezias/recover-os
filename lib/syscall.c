@@ -18,3 +18,9 @@ ssize_t read(ssize_t fd UNUSED, void *buf UNUSED, size_t count UNUSED) {
 ssize_t write(ssize_t fd UNUSED, void *buf UNUSED, size_t count UNUSED) {
 	return _syscall(SYS_WRITE);
 }
+ssize_t open(const char *pathname UNUSED) {
+	return _syscall(SYS_OPEN);
+}
+ssize_t close(ssize_t fd UNUSED) {
+	return _syscall(SYS_CLOSE);
+}

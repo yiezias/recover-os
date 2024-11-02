@@ -7,7 +7,7 @@ CC=gcc
 
 LIB=-Ilib -Idevice -Ikernel -Itask -Ifs -Iuserprog
 CFLAGS=-c -fno-builtin -W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector $(LIB)
-LDFLAGS=-e main -Ttext 0xffff800000000800 --no-relax
+LDFLAGS=-e main -Ttext 0xffff800000000800 --no-relax -z muldefs
 
 
 OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)/intr.o \
@@ -16,8 +16,11 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)
      $(BUILD_DIR)/switch.o $(BUILD_DIR)/list.o $(BUILD_DIR)/sync.o $(BUILD_DIR)/ioqueue.o \
      $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/bio.o $(BUILD_DIR)/inode.o \
      $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o $(BUILD_DIR)/console.o $(BUILD_DIR)/syscall-init.o \
-     $(BUILD_DIR)/syscall.o $(BUILD_DIR)/system-call.o $(BUILD_DIR)/init.o $(BUILD_DIR)/exec.o
+     $(BUILD_DIR)/system-call.o $(BUILD_DIR)/exec.o
 
+UOBJS=$(BUILD_DIR)/syscall.o $(BUILD_DIR)/init.o $(BUILD_DIR)/start.o
+
+AOBJS=$(OBJS) $(UOBJS)
 
 run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/init
 	bochs -q
@@ -35,7 +38,7 @@ clean:
 # 原理是利用gcc查找依赖写入d文件
 # 然后include进Makefile中
 
-DEPC=$(OBJS:.o=.d)
+DEPC=$(AOBJS:.o=.d)
 
 include $(DEPC)
 
@@ -81,8 +84,10 @@ $(BUILD_DIR)/kernel.bin: $(OBJS) $(DISK)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
 	dd if=$@ of=$(DISK) bs=512 seek=3 conv=notrunc
 
-$(BUILD_DIR)/init: $(BUILD_DIR)/init.o $(DISK)
-	$(LD) $< -o $@ -e init_main
+UDEPS=$(BUILD_DIR)/start.o $(BUILD_DIR)/syscall.o
+LDFLAGS2=$(UDEPS) -e _start
+$(BUILD_DIR)/init: $(BUILD_DIR)/init.o $(UDEPS) $(DISK)
+	$(LD) $< $(LDFLAGS2) -o $@
 	dd if=$@ of=$(DISK) bs=512 seek=200 conv=notrunc
 
 .PHONY: run clean

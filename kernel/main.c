@@ -21,23 +21,12 @@ void task_a(void *arg);
 void task_b(void *arg);
 struct semaphore sema;
 
-void init(void);
+void init_all(void);
 
 int main(void) {
 	cls_screen();
 	put_str("Kernel start\n");
-	{
-		intr_init();
-		tss_init();
-		timer_init();
-		mem_init();
-		task_init();
-		keyboard_init();
-		ide_init();
-		filesys_init();
-		console_init();
-		syscall_init();
-	}
+	init_all();
 
 	set_intr_stat(intr_on);
 	sema_init(&sema, 1);
@@ -64,6 +53,19 @@ int main(void) {
 		     : "memory");
 	while (1) {}
 	return 0;
+}
+
+void init_all(void) {
+	intr_init();
+	tss_init();
+	timer_init();
+	mem_init();
+	task_init();
+	keyboard_init();
+	ide_init();
+	filesys_init();
+	console_init();
+	syscall_init();
 }
 
 void task_a(void *arg) {

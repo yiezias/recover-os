@@ -11,4 +11,6 @@ enum SYSCALL_NR {
 
 ssize_t read(ssize_t fd, void *buf, size_t count);
 ssize_t write(ssize_t fd, void *buf, size_t count);
+ssize_t open(const char *pathname);
+ssize_t close(ssize_t fd);
 #endif
