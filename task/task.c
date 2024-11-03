@@ -1,10 +1,12 @@
 #include "task.h"
+#include "bitmap.h"
 #include "debug.h"
 #include "global.h"
 #include "intr.h"
 #include "memory.h"
 #include "print.h"
 #include "string.h"
+#include "sync.h"
 #include "tss.h"
 
 struct list all_tasks_list;
@@ -51,7 +53,32 @@ void schedule(void) {
 	switch_to(cur_task, next);
 }
 
+
+uint8_t pid_bitmap_bits[128] = { 0 };
+struct pid_pool {
+	struct bitmap pid_bitmap;
+	pid_t pid_start;
+	struct semaphore pid_lock;
+} pid_pool;
+
+static void pid_pool_init(void) {
+	pid_pool.pid_start = 0;
+	pid_pool.pid_bitmap.bits = pid_bitmap_bits;
+	pid_pool.pid_bitmap.bytes_len = 128;
+	bitmap_init(&pid_pool.pid_bitmap);
+	sema_init(&pid_pool.pid_lock, 1);
+}
+
+static pid_t alloc_pid(void) {
+	sema_down(&pid_pool.pid_lock);
+	size_t bit_idx = bitmap_alloc(&pid_pool.pid_bitmap, 1);
+	sema_up(&pid_pool.pid_lock);
+	return (bit_idx + pid_pool.pid_start);
+}
+
+
 static void init_task(struct task_struct *task, char *name, uint8_t prio) {
+	task->pid = alloc_pid();
 	strcpy(task->name, name);
 	task->prio = task->ticks = prio;
 	task->stack_magic = STACK_MAGIC;
@@ -70,6 +97,8 @@ struct task_stack {
 	uint64_t rip;
 };
 
+#define KERNEL_PML4 ((uint64_t *)0xffff800000100000)
+
 static void create_task_envi(struct task_struct *task, size_t stack,
 			     void *entry, void *args, bool su) {
 	struct task_stack *task_stack =
@@ -80,9 +109,16 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 
 	task_stack->rbp = (size_t) & (task->intr_stack)->rbp;
 	task->intr_stack->rflags = 0x202;
+	if (task->pid > 1) {
+		task->parent_task = running_task();
+		task->pml4 = alloc_pages(1);
+		memset(task->pml4, 0, PG_SIZE);
+		memcpy(task->pml4 + 256, KERNEL_PML4 + 256, 2048);
+	}
 	if (su) {
 		task->intr_stack->cs = SELECTOR_U_CODE;
 		task->intr_stack->ss = SELECTOR_U_DATA;
+
 	} else {
 		task->intr_stack->cs = SELECTOR_K_CODE;
 		task->intr_stack->ss = SELECTOR_K_DATA;
@@ -101,8 +137,6 @@ struct task_struct *create_task(size_t stack, void *entry, void *args,
 	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
 	list_append(&ready_tasks_list, &task->general_tag);
 
-	task->pml4 = alloc_pages(1);
-
 	create_task_envi(task, stack, entry, args, su);
 
 	return task;
@@ -120,11 +154,16 @@ static void make_main_task(void) {
 
 	main_task->intr_stack->cs = SELECTOR_K_CODE;
 	main_task->intr_stack->ss = SELECTOR_K_DATA;
+
+	main_task->parent_task = main_task;
+	main_task->pml4 = KERNEL_PML4;
 }
 
 static void idle_task_init(void) {
 	idle_task = create_task((size_t)alloc_pages(1) + PG_SIZE, idle, NULL,
 				"idle", 30, 0);
+	idle_task->parent_task = idle_task;
+	idle_task->pml4 = KERNEL_PML4;
 
 	idle_task->intr_stack->cs = SELECTOR_K_CODE;
 	idle_task->intr_stack->ss = SELECTOR_K_DATA;
@@ -135,6 +174,7 @@ void task_init(void) {
 
 	list_init(&ready_tasks_list);
 	list_init(&all_tasks_list);
+	pid_pool_init();
 	idle_task_init();
 	make_main_task();
 

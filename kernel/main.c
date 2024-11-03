@@ -28,12 +28,12 @@ int main(void) {
 	put_str("Kernel start\n");
 	init_all();
 
-	set_intr_stat(intr_on);
 	sema_init(&sema, 1);
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_a,
 		    "\x1b\x0ctask_a: ", "task_a", 30, 0);
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_b,
 		    "\x1b\x09task_b: ", "task_b", 30, 0);
+	set_intr_stat(intr_on);
 
 	ssize_t entry = load("/init");
 	/* 切换到用户态 */

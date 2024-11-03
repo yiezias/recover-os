@@ -16,6 +16,15 @@ switch_to:
 	/* 保存当前rbp到PCB中 */
 	movq 	%rbp,(%rdi)
 
+	/* 置换pml4，为什么在这里置换，
+	 * 因为调用schedule的不一定是时钟中断，
+	 * 此时栈可能存在于用户空间，
+	 * 如果下一个任务没有映射该空间就会出错。 */
+	movq 	+8(%rsi),%r13
+	movq 	$0xffff800000000000,%r12
+	subq 	%r12,%r13
+	movq 	%r13,%cr3
+
 	movq 	%rsi,%rdi
 	movq 	%rsi,%r12
 

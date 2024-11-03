@@ -24,3 +24,6 @@ ssize_t open(const char *pathname UNUSED) {
 ssize_t close(ssize_t fd UNUSED) {
 	return _syscall(SYS_CLOSE);
 }
+ssize_t stat(char *pathname UNUSED, struct stat *stat_buf UNUSED) {
+	return _syscall(SYS_STAT);
+}

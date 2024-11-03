@@ -23,6 +23,7 @@ void syscall_init(void) {
 	syscall_table[SYS_WRITE] = sys_write;
 	syscall_table[SYS_OPEN] = sys_open;
 	syscall_table[SYS_CLOSE] = sys_close;
+	syscall_table[SYS_STAT] = sys_stat;
 
 	put_str("syscall_init: end\n");
 }
