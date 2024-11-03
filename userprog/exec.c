@@ -74,20 +74,28 @@ typedef struct {
 #define PT_LOAD 1 /* Loadable program segment */
 
 
-#include "print.h"
-static void segment_load(ssize_t fd, size_t offset, size_t filesz,
-			 size_t vaddr) {
-	size_t page_start = vaddr & (~0xfff);
-	size_t page_end = PG_SIZE * DIV_ROUND_UP(vaddr + filesz, PG_SIZE);
-	size_t page_cnt = (page_end - page_start) / PG_SIZE;
-	for (size_t i = 0; i != page_cnt; ++i) {
-		page_map(page_start + i * PG_SIZE);
+void segment_load(ssize_t fd, size_t *segs) {
+	for (size_t i = 0; i != 4; ++i) {
+		size_t offset = segs[i * 3];
+		size_t filesz = segs[i * 3 + 1];
+		size_t vaddr = segs[i * 3 + 2];
+		if(filesz==0){
+			continue;
+		}
+
+		size_t page_start = vaddr & (~0xfff);
+		size_t page_end =
+			PG_SIZE * DIV_ROUND_UP(vaddr + filesz, PG_SIZE);
+		size_t page_cnt = (page_end - page_start) / PG_SIZE;
+		for (size_t i = 0; i != page_cnt; ++i) {
+			page_map(page_start + i * PG_SIZE);
+		}
+		sys_lseek(fd, offset, SEEK_SET);
+		sys_read(fd, (void *)vaddr, filesz);
 	}
-	sys_lseek(fd, offset, SEEK_SET);
-	sys_read(fd, (void *)vaddr, filesz);
 }
 
-ssize_t load(const char *pathname) {
+ssize_t elf_parse(const char *pathname, size_t *segs) {
 	ssize_t fd = sys_open(pathname);
 	if (fd < 0) {
 		return fd;
@@ -110,6 +118,7 @@ ssize_t load(const char *pathname) {
 		ret = -sizeof(Elf64_Ehdr);
 		goto done;
 	}
+	size_t *seg_idx = segs;
 	for (size_t prog_idx = 0; prog_idx != elf_header.e_phnum; ++prog_idx) {
 		sys_lseek(fd,
 			  elf_header.e_phoff
@@ -121,10 +130,12 @@ ssize_t load(const char *pathname) {
 			goto done;
 		}
 		if (PT_LOAD == prog_header.p_type) {
-			segment_load(fd, prog_header.p_offset,
-				     prog_header.p_filesz, prog_header.p_vaddr);
+			*(seg_idx++) = prog_header.p_offset;
+			*(seg_idx++) = prog_header.p_filesz;
+			*(seg_idx++) = prog_header.p_vaddr;
 		}
 	}
+	ASSERT(seg_idx - segs <= 12);
 	ret = elf_header.e_entry;
 
 done:

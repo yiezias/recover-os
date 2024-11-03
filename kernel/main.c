@@ -35,7 +35,13 @@ int main(void) {
 		    "\x1b\x09task_b: ", "task_b", 30, 0);
 	set_intr_stat(intr_on);
 
-	ssize_t entry = load("/init");
+	size_t segs[12] = { 0 };
+	char *exe_path = "/init";
+	ssize_t entry = elf_parse(exe_path, segs);
+	ssize_t fd = sys_open(exe_path);
+	ASSERT(fd >= 0);
+	segment_load(fd, segs);
+	sys_close(fd);
 	/* 切换到用户态 */
 	struct intr_stack *i_stack = alloc_pages(1);
 	i_stack->sregs = 0;

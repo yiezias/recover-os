@@ -2,6 +2,6 @@
 #define __USERPROG_EXEC_H
 #include "types.h"
 
-ssize_t load(const char *pathname);
-
+void segment_load(ssize_t fd, size_t *segs);
+ssize_t elf_parse(const char *pathname, size_t *segs);
 #endif
