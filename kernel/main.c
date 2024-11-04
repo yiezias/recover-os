@@ -33,10 +33,20 @@ int main(void) {
 		    "\x1b\x0ctask_a: ", "task_a", 30, 0);
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_b,
 		    "\x1b\x09task_b: ", "task_b", 30, 0);
+	/* 创建shell运行环境 */
+	struct addr_space *shell_addr_space = kalloc(sizeof(struct addr_space));
+	load_addr_space("/shell", shell_addr_space);
+	struct task_struct *task_shell =
+		create_task(DEFAULT_STACK, (void *)shell_addr_space->entry,
+			    NULL, "shell", 30, 1);
+	task_shell->addr_space_ptr = shell_addr_space;
+	/* 开中断 */
 	set_intr_stat(intr_on);
-
+	/* 创建init运行环境 */
+	struct addr_space *addr_space = kalloc(sizeof(struct addr_space));
+	load_addr_space("/init", addr_space);
 	struct task_struct *main_task = running_task();
-	load_addr_space("/init", main_task);
+	main_task->addr_space_ptr = addr_space;
 	/* 切换到用户态 */
 	struct intr_stack *i_stack = alloc_pages(1);
 	i_stack->sregs = 0;
@@ -45,9 +55,7 @@ int main(void) {
 
 	i_stack->rip = main_task->addr_space_ptr->entry;
 
-	size_t stack = 0x800000000000;
-	page_map(stack - PG_SIZE);
-	i_stack->rsp = stack;
+	main_task->stack = i_stack->rsp = DEFAULT_STACK;
 
 	i_stack->rflags = 0x202;
 	asm volatile("movq %0,%%rbp;jmp intr_exit" ::"g"(&i_stack->rbp)

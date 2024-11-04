@@ -140,21 +140,19 @@ static void segment_copy(char *pathname, size_t *sites, void *segments) {
 	sys_close(fd);
 }
 
-void load_addr_space(char *pathname, struct task_struct *task) {
-	task->addr_space_ptr = kalloc(sizeof(struct addr_space));
-
+void load_addr_space(char *pathname, struct addr_space *addr_space_ptr) {
 	size_t sites[12] = { 0 };
 
-	task->addr_space_ptr->entry = elf_parse(pathname, sites);
+	addr_space_ptr->entry = elf_parse(pathname, sites);
 	size_t filesz_total = 0;
 	for (size_t i = 0; i != 4; ++i) {
 		size_t filesz = sites[i * 3];
 		size_t vaddr = sites[i * 3 + 2];
-		filesz_total += (task->addr_space_ptr->filesz[i] = filesz);
-		task->addr_space_ptr->vaddr[i] = vaddr;
+		filesz_total += (addr_space_ptr->filesz[i] = filesz);
+		addr_space_ptr->vaddr[i] = vaddr;
 	}
-	size_t size = task->addr_space_ptr->segments_size =
+	size_t size = addr_space_ptr->segments_size =
 		DIV_ROUND_UP(filesz_total, PG_SIZE);
-	task->addr_space_ptr->segments = alloc_pages(size);
-	segment_copy(pathname, sites, task->addr_space_ptr->segments);
+	addr_space_ptr->segments = alloc_pages(size);
+	segment_copy(pathname, sites, addr_space_ptr->segments);
 }

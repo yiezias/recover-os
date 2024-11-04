@@ -91,24 +91,18 @@ static void init_task(struct task_struct *task, char *name, uint8_t prio) {
 		task->fd_table[i] = -1;
 	}
 	task->addr_space_ptr = NULL;
+	task->stack_size = PG_SIZE;
 }
-
-struct task_stack {
-	uint64_t rbp;
-	uint64_t rip;
-};
 
 #define KERNEL_PML4 ((uint64_t *)0xffff800000100000)
 
 static void create_task_envi(struct task_struct *task, size_t stack,
 			     void *entry, void *args, bool su) {
-	struct task_stack *task_stack =
-		(struct task_stack *)(stack - sizeof(struct task_stack));
-	task->rbp = (size_t)&task_stack->rbp;
+	task->rbp = (size_t)&task->switch_stack.rbp;
 	extern void intr_exit(void);
-	task_stack->rip = (uint64_t)intr_exit;
+	task->switch_stack.rip = (uint64_t)intr_exit;
 
-	task_stack->rbp = (size_t) & (task->intr_stack)->rbp;
+	task->switch_stack.rbp = (size_t) & (task->intr_stack)->rbp;
 	task->intr_stack->rflags = 0x202;
 	if (task->pid > 1) {
 		task->parent_task = running_task();
@@ -125,7 +119,7 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 		task->intr_stack->ss = SELECTOR_K_DATA;
 	}
 	task->intr_stack->sregs = 0;
-	task->intr_stack->rsp = stack;
+	task->stack = task->intr_stack->rsp = stack;
 	task->intr_stack->rip = (size_t)entry;
 	task->intr_stack->rdi = (size_t)args;
 }

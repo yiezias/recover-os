@@ -33,6 +33,18 @@ struct addr_space {
 	size_t segments_size;
 };
 
+struct switch_stack {
+	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t r15;
+	uint64_t r14;
+	uint64_t r13;
+	uint64_t r12;
+	uint64_t rbx;
+	uint64_t rbp;
+	uint64_t rip;
+};
+
 typedef ssize_t pid_t;
 #define MAX_FILES_OPEN_PER_PROC 32
 struct task_struct {
@@ -56,10 +68,14 @@ struct task_struct {
 	struct addr_space *addr_space_ptr;
 	ssize_t fd_table[MAX_FILES_OPEN_PER_PROC];
 	struct intr_stack *intr_stack;
+	struct switch_stack switch_stack;
+	size_t stack, stack_size;
 
 	uint64_t stack_magic;
 };
 #define STACK_MAGIC 0x474d575a5a46594c
+
+#define DEFAULT_STACK 0x800000000000
 
 struct task_struct *running_task(void);
 
