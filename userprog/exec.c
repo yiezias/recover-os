@@ -110,7 +110,10 @@ static ssize_t elf_parse(const char *pathname, size_t *sites) {
 			goto done;
 		}
 		if (PT_LOAD == prog_header.p_type) {
-			*(s_idx++) = prog_header.p_filesz;
+			*(s_idx++) = prog_header.p_memsz;
+			/* memsz会大于等于filesz，
+			 * 如果有一段不用的全局内存 
+			 * filesz就会等于零 */
 			*(s_idx++) = prog_header.p_offset;
 			*(s_idx++) = prog_header.p_vaddr;
 		}
@@ -140,10 +143,13 @@ static void segment_copy(char *pathname, size_t *sites, void *segments) {
 	sys_close(fd);
 }
 
-void load_addr_space(char *pathname, struct addr_space *addr_space_ptr) {
+ssize_t load_addr_space(char *pathname, struct addr_space *addr_space_ptr) {
 	size_t sites[12] = { 0 };
 
-	addr_space_ptr->entry = elf_parse(pathname, sites);
+	ssize_t ret = addr_space_ptr->entry = elf_parse(pathname, sites);
+	if (ret < 0) {
+		return ret;
+	}
 	size_t filesz_total = 0;
 	for (size_t i = 0; i != 4; ++i) {
 		size_t filesz = sites[i * 3];
@@ -155,4 +161,5 @@ void load_addr_space(char *pathname, struct addr_space *addr_space_ptr) {
 		DIV_ROUND_UP(filesz_total, PG_SIZE);
 	addr_space_ptr->segments = alloc_pages(size);
 	segment_copy(pathname, sites, addr_space_ptr->segments);
+	return ret;
 }

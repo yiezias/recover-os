@@ -234,8 +234,8 @@ void page_unmap(size_t vaddr) {
 static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 	ASSERT(intr_nr == 0x0e);
 	struct task_struct *cur_task = running_task();
-	if (cur_task->addr_space_ptr != NULL) {
-		struct addr_space *addr_space = cur_task->addr_space_ptr;
+	if (cur_task->addr_space.segments != NULL) {
+		struct addr_space *addr_space = &cur_task->addr_space;
 		size_t idx = 0;
 		for (int i = 0; i != 4; ++i) {
 			size_t vaddr = addr_space->vaddr[i];
@@ -258,8 +258,7 @@ static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 		}
 
 		free_pages(addr_space->segments, addr_space->segments_size);
-		kfree(cur_task->addr_space_ptr);
-		cur_task->addr_space_ptr = NULL;
+		cur_task->addr_space.segments = NULL;
 		return;
 	}
 	size_t page_fault_vaddr = 0;

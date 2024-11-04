@@ -65,7 +65,7 @@ struct task_struct {
 
 	struct task_struct *parent_task;
 
-	struct addr_space *addr_space_ptr;
+	struct addr_space addr_space;
 	ssize_t fd_table[MAX_FILES_OPEN_PER_PROC];
 	struct intr_stack *intr_stack;
 	struct switch_stack switch_stack;
@@ -86,4 +86,10 @@ struct task_struct *create_task(size_t stack, void *entry, void *args,
 void task_block(enum task_status status);
 void task_unblock(struct task_struct *task);
 void task_yield(void);
+
+#define CLONE_VM 0x100
+#define CLONE_FILES 0x400
+
+pid_t sys_clone(size_t clone_flag, size_t stack, void *entry, void *args,
+		char *pathname);
 #endif

@@ -24,6 +24,7 @@ void syscall_init(void) {
 	syscall_table[SYS_OPEN] = sys_open;
 	syscall_table[SYS_CLOSE] = sys_close;
 	syscall_table[SYS_STAT] = sys_stat;
+	syscall_table[SYS_CLONE] = sys_clone;
 
 	put_str("syscall_init: end\n");
 }

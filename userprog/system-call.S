@@ -21,6 +21,7 @@ system_call:
 	leaq	syscall_table(%rip),%rax
 	shlq	$3,-8(%rbp)
 	addq 	-8(%rbp),%rax
+	movq 	%r10,%rcx
 	callq 	*(%rax)
 
 	movq	%rax,-8 (%rbp)

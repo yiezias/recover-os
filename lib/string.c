@@ -51,3 +51,26 @@ size_t strlen(const char *str) {
 	while (str[len++]) {}
 	return len - 1;
 }
+
+char *strrchr(const char *str, const char ch) {
+	ASSERT(str != NULL);
+	const char *last_char = NULL;
+	while (*str != 0) {
+		if (*str == ch) {
+			last_char = str;
+		}
+		++str;
+	}
+	return (char *)last_char;
+}
+
+char *strchr(const char *str, const char ch) {
+	ASSERT(str != NULL);
+	while (*str != 0) {
+		if (*str == ch) {
+			return (char *)str;
+		}
+		++str;
+	}
+	return NULL;
+}
