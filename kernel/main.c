@@ -35,20 +35,15 @@ int main(void) {
 		    "\x1b\x09task_b: ", "task_b", 30, 0);
 	set_intr_stat(intr_on);
 
-	size_t segs[12] = { 0 };
-	char *exe_path = "/init";
-	ssize_t entry = elf_parse(exe_path, segs);
-	ssize_t fd = sys_open(exe_path);
-	ASSERT(fd >= 0);
-	segment_load(fd, segs);
-	sys_close(fd);
+	struct task_struct *main_task = running_task();
+	load_addr_space("/init", main_task);
 	/* 切换到用户态 */
 	struct intr_stack *i_stack = alloc_pages(1);
 	i_stack->sregs = 0;
 	i_stack->cs = SELECTOR_U_CODE;
 	i_stack->ss = SELECTOR_U_DATA;
 
-	i_stack->rip = entry;
+	i_stack->rip = main_task->addr_space_ptr->entry;
 
 	size_t stack = 0x800000000000;
 	page_map(stack - PG_SIZE);

@@ -1,7 +1,6 @@
 #include "intr.h"
 #include "global.h"
 #include "io.h"
-#include "task.h"
 
 #define RFLAGS_IF 0x200
 
@@ -32,30 +31,29 @@ enum intr_stat set_intr_stat(enum intr_stat stat) {
 extern void *intr_entry_table[IDT_DESC_CNT];
 void *intr_handle_table[IDT_DESC_CNT];
 
-
-
-static void general_intr_handle(int intr_nr, uint64_t *rbp_ptr) {
-	if (intr_nr == 0x27 || intr_nr == 0x2f || intr_nr == 0x21) {
-		return;
-	}
-
+void put_intr_info(int intr_nr, uint64_t *rbp_ptr,
+		   struct task_struct *cur_task) {
 	put_info("\x1b\x0c\n\nintr_nr:\t", intr_nr);
 
-	put_info("ss_old:\t", rbp_ptr[0]);
+	put_info("ss_old:\t\t", rbp_ptr[0]);
 	put_info("rsp_old:\t", rbp_ptr[-1]);
 	put_info("rflags_old:\t", rbp_ptr[-2]);
 	put_info("cs_old:\t\t", rbp_ptr[-3]);
 	put_info("rip_old:\t", rbp_ptr[-4]);
 	put_info("err_code:\t", rbp_ptr[-5]);
 	put_info("rbp_old:\t", rbp_ptr[-6]);
-	put_str("task:\t");
-	put_str(running_task()->name);
+	put_str("task:\t\t");
+	put_str(cur_task->name);
 	put_char('\n');
-	size_t page_fault_vaddr = 0;
-	asm("movq %%cr2, %0" : "=r"(page_fault_vaddr));
-	if (intr_nr == 0xe) {
-		put_info("page_fault_vaddr:\t", page_fault_vaddr);
+}
+
+static void general_intr_handle(int intr_nr, uint64_t *rbp_ptr) {
+	if (intr_nr == 0x27 || intr_nr == 0x2f || intr_nr == 0x21) {
+		return;
 	}
+
+	struct task_struct *cur_task = running_task();
+	put_intr_info(intr_nr, rbp_ptr, cur_task);
 	while (1) {}
 }
 

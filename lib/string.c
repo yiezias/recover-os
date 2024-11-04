@@ -44,3 +44,10 @@ int strcmp(const char *a, const char *b) {
 
 	return *a - *b;
 }
+
+size_t strlen(const char *str) {
+	ASSERT(str);
+	size_t len = 0;
+	while (str[len++]) {}
+	return len - 1;
+}

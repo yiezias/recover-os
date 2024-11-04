@@ -25,6 +25,14 @@ enum task_status {
 	TASK_BLOCKED,
 };
 
+struct addr_space {
+	size_t entry;
+	size_t vaddr[4];
+	size_t filesz[4];
+	void *segments;
+	size_t segments_size;
+};
+
 typedef ssize_t pid_t;
 #define MAX_FILES_OPEN_PER_PROC 32
 struct task_struct {
@@ -45,6 +53,7 @@ struct task_struct {
 
 	struct task_struct *parent_task;
 
+	struct addr_space *addr_space_ptr;
 	ssize_t fd_table[MAX_FILES_OPEN_PER_PROC];
 	struct intr_stack *intr_stack;
 

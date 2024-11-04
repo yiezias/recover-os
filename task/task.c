@@ -90,6 +90,7 @@ static void init_task(struct task_struct *task, char *name, uint8_t prio) {
 	for (size_t i = 0; i != MAX_FILES_OPEN_PER_PROC; ++i) {
 		task->fd_table[i] = -1;
 	}
+	task->addr_space_ptr = NULL;
 }
 
 struct task_stack {

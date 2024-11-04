@@ -2,10 +2,12 @@
 #include "bitmap.h"
 #include "debug.h"
 #include "global.h"
+#include "intr.h"
 #include "list.h"
 #include "print.h"
 #include "string.h"
 #include "sync.h"
+#include "task.h"
 #include "tss.h"
 
 struct mem_pool {
@@ -229,6 +231,46 @@ void page_unmap(size_t vaddr) {
 	pool_free(&phy_mem_pool, paddr, 1);
 }
 
+static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
+	ASSERT(intr_nr == 0x0e);
+	struct task_struct *cur_task = running_task();
+	if (cur_task->addr_space_ptr != NULL) {
+		struct addr_space *addr_space = cur_task->addr_space_ptr;
+		size_t idx = 0;
+		for (int i = 0; i != 4; ++i) {
+			size_t vaddr = addr_space->vaddr[i];
+			if (vaddr == 0) {
+				continue;
+			}
+			size_t filesz = addr_space->filesz[i];
+			size_t page_start = vaddr & (~0xfff);
+			size_t page_end =
+				PG_SIZE
+				* DIV_ROUND_UP((vaddr + filesz), PG_SIZE);
+			size_t pg_cnt = (page_end - page_start) / PG_SIZE;
+			for (size_t i = 0; i != pg_cnt; ++i) {
+				page_map(page_start + i * PG_SIZE);
+			}
+
+			memcpy((void *)vaddr, addr_space->segments + idx,
+			       filesz);
+			idx += filesz;
+		}
+
+		free_pages(addr_space->segments, addr_space->segments_size);
+		kfree(cur_task->addr_space_ptr);
+		cur_task->addr_space_ptr = NULL;
+		return;
+	}
+	put_intr_info(intr_nr, rbp_ptr, cur_task);
+	size_t page_fault_vaddr = 0;
+	asm("movq %%cr2, %0" : "=r"(page_fault_vaddr));
+	if (intr_nr == 0xe) {
+		put_info("page_fault_vaddr:\t", page_fault_vaddr);
+	}
+	while (1) {}
+}
+
 
 void mem_init(void) {
 	put_str("mem_init: start\n");
@@ -245,5 +287,6 @@ void mem_init(void) {
 	mem_pool_init(&phy_mem_pool, 0, mem_bytes_total >> 12 / 8,
 		      phy_mem_pool_bitmap, 0x200000 >> 12);
 
+	register_intr_handle(0x0e, intr_page_handle);
 	put_str("mem_init: end\n");
 }

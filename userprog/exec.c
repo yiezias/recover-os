@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "file.h"
 #include "global.h"
+#include "memory.h"
 #include "string.h"
 
 /* Type for a 16-bit quantity.  */
@@ -74,28 +75,7 @@ typedef struct {
 #define PT_LOAD 1 /* Loadable program segment */
 
 
-void segment_load(ssize_t fd, size_t *segs) {
-	for (size_t i = 0; i != 4; ++i) {
-		size_t offset = segs[i * 3];
-		size_t filesz = segs[i * 3 + 1];
-		size_t vaddr = segs[i * 3 + 2];
-		if(filesz==0){
-			continue;
-		}
-
-		size_t page_start = vaddr & (~0xfff);
-		size_t page_end =
-			PG_SIZE * DIV_ROUND_UP(vaddr + filesz, PG_SIZE);
-		size_t page_cnt = (page_end - page_start) / PG_SIZE;
-		for (size_t i = 0; i != page_cnt; ++i) {
-			page_map(page_start + i * PG_SIZE);
-		}
-		sys_lseek(fd, offset, SEEK_SET);
-		sys_read(fd, (void *)vaddr, filesz);
-	}
-}
-
-ssize_t elf_parse(const char *pathname, size_t *segs) {
+static ssize_t elf_parse(const char *pathname, size_t *sites) {
 	ssize_t fd = sys_open(pathname);
 	if (fd < 0) {
 		return fd;
@@ -118,7 +98,7 @@ ssize_t elf_parse(const char *pathname, size_t *segs) {
 		ret = -sizeof(Elf64_Ehdr);
 		goto done;
 	}
-	size_t *seg_idx = segs;
+	size_t *s_idx = sites;
 	for (size_t prog_idx = 0; prog_idx != elf_header.e_phnum; ++prog_idx) {
 		sys_lseek(fd,
 			  elf_header.e_phoff
@@ -130,15 +110,51 @@ ssize_t elf_parse(const char *pathname, size_t *segs) {
 			goto done;
 		}
 		if (PT_LOAD == prog_header.p_type) {
-			*(seg_idx++) = prog_header.p_offset;
-			*(seg_idx++) = prog_header.p_filesz;
-			*(seg_idx++) = prog_header.p_vaddr;
+			*(s_idx++) = prog_header.p_filesz;
+			*(s_idx++) = prog_header.p_offset;
+			*(s_idx++) = prog_header.p_vaddr;
 		}
 	}
-	ASSERT(seg_idx - segs <= 12);
+	ASSERT(s_idx - sites <= 12);
 	ret = elf_header.e_entry;
 
 done:
 	sys_close(fd);
 	return ret;
+}
+
+static void segment_copy(char *pathname, size_t *sites, void *segments) {
+	ssize_t fd = sys_open(pathname);
+	ASSERT(fd >= 0);
+	size_t idx = 0;
+	for (int i = 0; i != 4; ++i) {
+		size_t filesz = sites[i * 3];
+		if (filesz == 0) {
+			continue;
+		}
+		size_t offset = sites[i * 3 + 1];
+		sys_lseek(fd, offset, SEEK_SET);
+		sys_read(fd, segments + idx, filesz);
+		idx += filesz;
+	}
+	sys_close(fd);
+}
+
+void load_addr_space(char *pathname, struct task_struct *task) {
+	task->addr_space_ptr = kalloc(sizeof(struct addr_space));
+
+	size_t sites[12] = { 0 };
+
+	task->addr_space_ptr->entry = elf_parse(pathname, sites);
+	size_t filesz_total = 0;
+	for (size_t i = 0; i != 4; ++i) {
+		size_t filesz = sites[i * 3];
+		size_t vaddr = sites[i * 3 + 2];
+		filesz_total += (task->addr_space_ptr->filesz[i] = filesz);
+		task->addr_space_ptr->vaddr[i] = vaddr;
+	}
+	size_t size = task->addr_space_ptr->segments_size =
+		DIV_ROUND_UP(filesz_total, PG_SIZE);
+	task->addr_space_ptr->segments = alloc_pages(size);
+	segment_copy(pathname, sites, task->addr_space_ptr->segments);
 }
