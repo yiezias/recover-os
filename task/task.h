@@ -26,11 +26,8 @@ enum task_status {
 };
 
 struct addr_space {
-	size_t entry;
 	size_t vaddr[4];
 	size_t filesz[4];
-	void *segments;
-	size_t segments_size;
 };
 
 struct switch_stack {
@@ -56,8 +53,6 @@ struct task_struct {
 	uint8_t prio;
 	uint8_t ticks;
 
-	char name[20];
-
 	enum task_status status;
 
 	struct list_elem general_tag;
@@ -82,7 +77,7 @@ struct task_struct *running_task(void);
 void schedule(void);
 
 struct task_struct *create_task(size_t stack, void *entry, void *args,
-				char *name, uint8_t prio, bool su);
+				uint8_t prio, bool su);
 void task_block(enum task_status status);
 void task_unblock(struct task_struct *task);
 void task_yield(void);
@@ -90,6 +85,7 @@ void task_yield(void);
 #define CLONE_VM 0x100
 #define CLONE_FILES 0x400
 
-pid_t sys_clone(size_t clone_flag, size_t stack, void *entry, void *args,
-		char *pathname);
+void copy_page(size_t page, struct task_struct *d_task,
+	       struct task_struct *s_task);
+pid_t sys_clone(size_t clone_flag, size_t stack);
 #endif

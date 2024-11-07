@@ -78,9 +78,12 @@ static pid_t alloc_pid(void) {
 }
 
 
-static void init_task(struct task_struct *task, char *name, uint8_t prio) {
+static void init_task(struct task_struct *task, uint8_t prio) {
 	task->pid = alloc_pid();
-	strcpy(task->name, name);
+	task->parent_task = task->pid > 1 ? running_task() : task;
+	task->pml4 = task->parent_task->pml4;
+	memcpy(&task->addr_space, &task->parent_task->addr_space,
+	       sizeof(struct addr_space));
 	task->prio = task->ticks = prio;
 	task->stack_magic = STACK_MAGIC;
 	ASSERT(!elem_find(&all_tasks_list, &task->all_list_tag));
@@ -105,20 +108,8 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 
 	task->switch_stack.rbp = (size_t) & (task->intr_stack)->rbp;
 	task->intr_stack->rflags = 0x202;
-	if (task->pid > 1) {
-		task->parent_task = running_task();
-		task->pml4 = alloc_pages(1);
-		memset(task->pml4, 0, PG_SIZE);
-		memcpy(task->pml4 + 256, task->parent_task->pml4 + 256, 2048);
-	}
-	if (su) {
-		task->intr_stack->cs = SELECTOR_U_CODE;
-		task->intr_stack->ss = SELECTOR_U_DATA;
-
-	} else {
-		task->intr_stack->cs = SELECTOR_K_CODE;
-		task->intr_stack->ss = SELECTOR_K_DATA;
-	}
+	task->intr_stack->cs = su ? SELECTOR_U_CODE : SELECTOR_K_CODE;
+	task->intr_stack->ss = su ? SELECTOR_U_DATA : SELECTOR_K_DATA;
 	task->intr_stack->sregs = 0;
 	task->stack = task->intr_stack->rsp = stack;
 	task->intr_stack->rip = (size_t)entry;
@@ -126,9 +117,9 @@ static void create_task_envi(struct task_struct *task, size_t stack,
 }
 
 struct task_struct *create_task(size_t stack, void *entry, void *args,
-				char *name, uint8_t prio, bool su) {
+				uint8_t prio, bool su) {
 	struct task_struct *task = alloc_pages(1);
-	init_task(task, name, prio);
+	init_task(task, prio);
 	task->status = TASK_READY;
 	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
 	list_append(&ready_tasks_list, &task->general_tag);
@@ -146,7 +137,7 @@ static void make_main_task(void) {
 	put_info("ist2: ", tss.ist2);
 
 	main_task->status = TASK_RUNNING;
-	init_task(main_task, "main", 30);
+	init_task(main_task, 30);
 
 	main_task->intr_stack->cs = SELECTOR_K_CODE;
 	main_task->intr_stack->ss = SELECTOR_K_DATA;
@@ -157,7 +148,7 @@ static void make_main_task(void) {
 
 static void idle_task_init(void) {
 	idle_task = create_task((size_t)alloc_pages(1) + PG_SIZE, idle, NULL,
-				"idle", 30, 0);
+				30, 0);
 	idle_task->parent_task = idle_task;
 	idle_task->pml4 = KERNEL_PML4;
 
@@ -165,32 +156,62 @@ static void idle_task_init(void) {
 	idle_task->intr_stack->ss = SELECTOR_K_DATA;
 }
 
-pid_t sys_clone(size_t clone_flag, size_t stack, void *entry, void *args,
-		char *pathname) {
-	struct addr_space addr_space;
-	char *name = NULL;
-	if (!(clone_flag & CLONE_VM)) {
-		if (pathname == NULL) {
-			return 0;
-		}
-		entry = (void *)load_addr_space(pathname, &addr_space);
-		name = strrchr(pathname, '/') + 1;
-		if ((ssize_t)entry < 0) {
-			return 0;
-		}
-	}
-	name = running_task()->name;
-	struct task_struct *task = create_task(stack, entry, args, name, 30, 1);
+void copy_page(size_t page, struct task_struct *d_task,
+	       struct task_struct *s_task) {
+	uint64_t *pml4 = running_task()->pml4;
+	void *page_buf = alloc_pages(1);
 
-	if (clone_flag & CLONE_VM) {
-		memcpy(task->pml4, task->parent_task->pml4, 256);
+	asm volatile(
+		"movq %0,%%cr3" ::"r"((size_t)s_task->pml4 - kernel_addr_base));
+	memcpy(page_buf, (void *)page, PG_SIZE);
+
+	asm volatile(
+		"movq %0,%%cr3" ::"r"((size_t)d_task->pml4 - kernel_addr_base));
+	page_map(page);
+	memcpy((void *)page, page_buf, PG_SIZE);
+
+	asm volatile("movq %0,%%cr3" ::"r"((size_t)pml4 - kernel_addr_base));
+	free_pages(page_buf, 1);
+}
+
+extern void system_ret(void);
+size_t rsp_buf;
+pid_t sys_clone(size_t clone_flag, size_t stack) {
+	uint64_t syscall_rbp;
+	asm volatile("movq (%%rbp),%0" : "=a"(syscall_rbp));
+	struct task_struct *task = create_task(stack, system_ret, NULL, 30, 0);
+	// 修改返回值
+	*(uint64_t *)(syscall_rbp - 8) = 0;
+
+	task->intr_stack->rbp = syscall_rbp;
+
+	//	struct task_struct *par_task = task->parent_task;
+	//	size_t stack_start = par_task->stack - par_task->stack_size;
+	//	void *page_buf = alloc_pages(1);
+	//	memcpy(page_buf, (void *)stack_start, PG_SIZE);
+	//	asm volatile(
+	//		"movq %0,%%cr3" ::"r"((size_t)task->pml4 -
+	// kernel_addr_base)); 	page_map(stack_start); 	memcpy((void
+	// *)stack_start, page_buf, PG_SIZE); 	asm volatile("movq %0,%%cr3"
+	//::"r"((size_t)par_task->pml4
+	//					   - kernel_addr_base));
+	//	free_pages(page_buf, 1);
+	if (!(clone_flag & CLONE_VM)) {
+		task->pml4 = alloc_pages(1);
+		memcpy(task->pml4 + 256, task->parent_task->pml4 + 256, 2048);
 	}
+	void *tmp_stack = alloc_pages(1);
+	asm volatile("movq %%rsp,%0" : "=g"(rsp_buf)::"memory");
+	asm volatile("movq %0,%%rsp" ::"g"(tmp_stack + PG_SIZE));
+	copy_page(DEFAULT_STACK - PG_SIZE, task, task->parent_task);
+	asm volatile("movq %0,%%rsp" ::"g"(rsp_buf));
+
+	free_pages(tmp_stack, 1);
 
 	if (clone_flag & CLONE_FILES) {
 		memcpy(task->fd_table, task->parent_task->fd_table,
 		       MAX_FILES_OPEN_PER_PROC * 8);
 	}
-	memcpy(&task->addr_space, &addr_space, sizeof(struct addr_space));
 	return task->pid;
 }
 

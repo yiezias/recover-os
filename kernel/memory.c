@@ -231,50 +231,35 @@ void page_unmap(size_t vaddr) {
 	pool_free(&phy_mem_pool, paddr, 1);
 }
 
+#define in_range(start, size, vaddr) \
+	((start) <= (vaddr) && (vaddr) < ((start) + (size)))
 static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 	ASSERT(intr_nr == 0x0e);
 	struct task_struct *cur_task = running_task();
-	if (cur_task->addr_space.segments != NULL) {
-		struct addr_space *addr_space = &cur_task->addr_space;
-		size_t idx = 0;
-		for (int i = 0; i != 4; ++i) {
-			size_t vaddr = addr_space->vaddr[i];
-			if (vaddr == 0) {
-				continue;
-			}
-			size_t filesz = addr_space->filesz[i];
-			size_t page_start = vaddr & (~0xfff);
-			size_t page_end =
-				PG_SIZE
-				* DIV_ROUND_UP((vaddr + filesz), PG_SIZE);
-			size_t pg_cnt = (page_end - page_start) / PG_SIZE;
-			for (size_t i = 0; i != pg_cnt; ++i) {
-				page_map(page_start + i * PG_SIZE);
-			}
 
-			memcpy((void *)vaddr, addr_space->segments + idx,
-			       filesz);
-			idx += filesz;
-		}
-
-		free_pages(addr_space->segments, addr_space->segments_size);
-		cur_task->addr_space.segments = NULL;
-		return;
-	}
 	size_t page_fault_vaddr = 0;
 	asm("movq %%cr2, %0" : "=r"(page_fault_vaddr));
+	size_t fault_page = page_fault_vaddr & (~0xfff);
 
-	size_t stack = cur_task->stack;
-	size_t stack_start = stack - cur_task->stack_size;
-	if (page_fault_vaddr < stack && page_fault_vaddr >= stack_start) {
-		page_map(page_fault_vaddr & (~0xfff));
+	put_intr_info(intr_nr, rbp_ptr, cur_task);
+	put_info("page_fault_vaddr:\t", page_fault_vaddr);
+	while (1) {}
+	bool in_rg = false;
+	for (int i = 0; i != 4; ++i) {
+		in_rg |= in_range(cur_task->addr_space.vaddr[i],
+				  cur_task->addr_space.filesz[i],
+				  page_fault_vaddr);
+	}
+	size_t stack_size = cur_task->stack_size;
+	size_t stack_start = cur_task->stack - stack_size;
+	in_rg |= in_range(stack_start, stack_size, page_fault_vaddr);
+	if (in_rg) {
+		copy_page(fault_page, cur_task, cur_task->parent_task);
 		return;
 	}
 
 	put_intr_info(intr_nr, rbp_ptr, cur_task);
-	if (intr_nr == 0xe) {
-		put_info("page_fault_vaddr:\t", page_fault_vaddr);
-	}
+	put_info("page_fault_vaddr:\t", page_fault_vaddr);
 	while (1) {}
 }
 

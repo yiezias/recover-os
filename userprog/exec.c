@@ -75,7 +75,19 @@ typedef struct {
 #define PT_LOAD 1 /* Loadable program segment */
 
 
-static ssize_t elf_parse(const char *pathname, size_t *sites) {
+static void segment_load(size_t fd, size_t offset, size_t filesz,
+			 size_t vaddr) {
+	size_t page_start = vaddr & (~0xfff);
+	size_t page_end = PG_SIZE * DIV_ROUND_UP((vaddr + filesz), PG_SIZE);
+	size_t pg_cnt = (page_end - page_start) / PG_SIZE;
+	for (size_t i = 0; i != pg_cnt; ++i) {
+		page_map(page_start + i * PG_SIZE);
+	}
+	sys_lseek(fd, offset, SEEK_SET);
+	sys_read(fd, (void *)vaddr, filesz);
+}
+
+static ssize_t elf_parse(const char *pathname, struct addr_space *addr_space) {
 	ssize_t fd = sys_open(pathname);
 	if (fd < 0) {
 		return fd;
@@ -98,7 +110,7 @@ static ssize_t elf_parse(const char *pathname, size_t *sites) {
 		ret = -sizeof(Elf64_Ehdr);
 		goto done;
 	}
-	size_t *s_idx = sites;
+	size_t load_idx = 0;
 	for (size_t prog_idx = 0; prog_idx != elf_header.e_phnum; ++prog_idx) {
 		sys_lseek(fd,
 			  elf_header.e_phoff
@@ -110,15 +122,16 @@ static ssize_t elf_parse(const char *pathname, size_t *sites) {
 			goto done;
 		}
 		if (PT_LOAD == prog_header.p_type) {
-			*(s_idx++) = prog_header.p_memsz;
 			/* memsz会大于等于filesz，
-			 * 如果有一段不用的全局内存 
+			 * 如果有一段不用的全局内存
 			 * filesz就会等于零 */
-			*(s_idx++) = prog_header.p_offset;
-			*(s_idx++) = prog_header.p_vaddr;
+			segment_load(fd, prog_header.p_offset,
+				     prog_header.p_memsz, prog_header.p_vaddr);
+			addr_space->filesz[load_idx] = prog_header.p_memsz;
+			addr_space->vaddr[load_idx++] = prog_header.p_vaddr;
 		}
 	}
-	ASSERT(s_idx - sites <= 12);
+	ASSERT(load_idx <= 4);
 	ret = elf_header.e_entry;
 
 done:
@@ -126,40 +139,23 @@ done:
 	return ret;
 }
 
-static void segment_copy(char *pathname, size_t *sites, void *segments) {
-	ssize_t fd = sys_open(pathname);
-	ASSERT(fd >= 0);
-	size_t idx = 0;
-	for (int i = 0; i != 4; ++i) {
-		size_t filesz = sites[i * 3];
-		if (filesz == 0) {
-			continue;
-		}
-		size_t offset = sites[i * 3 + 1];
-		sys_lseek(fd, offset, SEEK_SET);
-		sys_read(fd, segments + idx, filesz);
-		idx += filesz;
-	}
-	sys_close(fd);
-}
+ssize_t sys_execv(char *pathname, const char *argv[]) {
+	uint64_t rbp;
+	asm volatile("movq (%%rbp),%0" : "=a"(rbp));
 
-ssize_t load_addr_space(char *pathname, struct addr_space *addr_space_ptr) {
-	size_t sites[12] = { 0 };
+	struct task_struct *cur_task = running_task();
+	ssize_t entry_point = elf_parse(pathname, &cur_task->addr_space);
+	if (entry_point < 0) {
+		return entry_point;
+	}
+	*(uint64_t *)(rbp - 16) = entry_point;
 
-	ssize_t ret = addr_space_ptr->entry = elf_parse(pathname, sites);
-	if (ret < 0) {
-		return ret;
+	uint64_t argc = 0;
+	while (argv[argc]) {
+		++argc;
 	}
-	size_t filesz_total = 0;
-	for (size_t i = 0; i != 4; ++i) {
-		size_t filesz = sites[i * 3];
-		size_t vaddr = sites[i * 3 + 2];
-		filesz_total += (addr_space_ptr->filesz[i] = filesz);
-		addr_space_ptr->vaddr[i] = vaddr;
-	}
-	size_t size = addr_space_ptr->segments_size =
-		DIV_ROUND_UP(filesz_total, PG_SIZE);
-	addr_space_ptr->segments = alloc_pages(size);
-	segment_copy(pathname, sites, addr_space_ptr->segments);
-	return ret;
+	asm volatile("movq %0,%%rdi;movq %1,%%rsi" ::"g"(argc), "g"(argv)
+		     : "memory");
+	asm volatile("movq %0,%%rbp;jmp system_ret" ::"g"(rbp) : "memory");
+	return 0;
 }

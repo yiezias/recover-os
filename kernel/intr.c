@@ -42,9 +42,7 @@ void put_intr_info(int intr_nr, uint64_t *rbp_ptr,
 	put_info("rip_old:\t", rbp_ptr[-4]);
 	put_info("err_code:\t", rbp_ptr[-5]);
 	put_info("rbp_old:\t", rbp_ptr[-6]);
-	put_str("task:\t\t");
-	put_str(cur_task->name);
-	put_char('\n');
+	put_info("task_pid\t", cur_task->pid);
 }
 
 static void general_intr_handle(int intr_nr, uint64_t *rbp_ptr) {

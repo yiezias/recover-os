@@ -22,7 +22,6 @@ void task_b(void *arg);
 struct semaphore sema;
 
 void init_all(void);
-void enter_the_user_mode(void);
 
 int main(void) {
 	cls_screen();
@@ -31,35 +30,24 @@ int main(void) {
 
 	sema_init(&sema, 1);
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_a,
-		    "\x1b\x0ctask_a: ", "task_a", 30, 0);
+		    "\x1b\x0ctask_a: ", 30, 0);
 	create_task((size_t)alloc_pages(1) + PG_SIZE, task_b,
-		    "\x1b\x09task_b: ", "task_b", 30, 0);
-	/* 创建shell运行环境 */
-	sys_clone(0, DEFAULT_STACK, NULL, NULL, "/shell");
+		    "\x1b\x09task_b: ", 30, 0);
 	/* 开中断 */
 	set_intr_stat(intr_on);
-	enter_the_user_mode();
+
+	const char *argv[] = { NULL };
+
+	struct task_struct *main_task = running_task();
+	main_task->stack = DEFAULT_STACK;
+	uint64_t *rbp = (uint64_t *)(DEFAULT_STACK - 8);
+	page_map(DEFAULT_STACK - PG_SIZE);
+	rbp[-3] = 0x202;
+	asm volatile("movq %0,%%rbp" ::"g"(rbp));
+
+	sys_execv("/init", argv);
 	while (1) {}
 	return 0;
-}
-
-void enter_the_user_mode(void) {
-	/* 创建init运行环境 */
-	struct task_struct *main_task = running_task();
-	load_addr_space("/init", &main_task->addr_space);
-	/* 切换到用户态 */
-	struct intr_stack *i_stack = alloc_pages(1);
-	i_stack->sregs = 0;
-	i_stack->cs = SELECTOR_U_CODE;
-	i_stack->ss = SELECTOR_U_DATA;
-
-	i_stack->rip = main_task->addr_space.entry;
-
-	main_task->stack = i_stack->rsp = DEFAULT_STACK;
-
-	i_stack->rflags = 0x202;
-	asm volatile("movq %0,%%rbp;jmp intr_exit" ::"g"(&i_stack->rbp)
-		     : "memory");
 }
 
 void init_all(void) {
