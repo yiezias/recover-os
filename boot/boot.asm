@@ -117,7 +117,7 @@ code32_start:
 	;内核地址与用户地址指向相同位置
 	mov dword [page_base+0x800],page_base+0x1007-4
 	;为了分页之后还能访问到各级页目录
-	mov dword [page_base+4088],page_base+7-4
+;	mov dword [page_base+4088],page_base+7-4
 
 	;创建pte
 	;已映射2M共512个页，拟将后1M作为内核内存池

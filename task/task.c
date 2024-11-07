@@ -94,7 +94,6 @@ static void init_task(struct task_struct *task, uint8_t prio) {
 	for (size_t i = 0; i != MAX_FILES_OPEN_PER_PROC; ++i) {
 		task->fd_table[i] = -1;
 	}
-	memset(&task->addr_space, 0, sizeof(struct addr_space));
 	task->stack_size = PG_SIZE;
 }
 
@@ -185,19 +184,9 @@ pid_t sys_clone(size_t clone_flag, size_t stack) {
 
 	task->intr_stack->rbp = syscall_rbp;
 
-	//	struct task_struct *par_task = task->parent_task;
-	//	size_t stack_start = par_task->stack - par_task->stack_size;
-	//	void *page_buf = alloc_pages(1);
-	//	memcpy(page_buf, (void *)stack_start, PG_SIZE);
-	//	asm volatile(
-	//		"movq %0,%%cr3" ::"r"((size_t)task->pml4 -
-	// kernel_addr_base)); 	page_map(stack_start); 	memcpy((void
-	// *)stack_start, page_buf, PG_SIZE); 	asm volatile("movq %0,%%cr3"
-	//::"r"((size_t)par_task->pml4
-	//					   - kernel_addr_base));
-	//	free_pages(page_buf, 1);
 	if (!(clone_flag & CLONE_VM)) {
 		task->pml4 = alloc_pages(1);
+		memset(task->pml4, 0, PG_SIZE);
 		memcpy(task->pml4 + 256, task->parent_task->pml4 + 256, 2048);
 	}
 	void *tmp_stack = alloc_pages(1);

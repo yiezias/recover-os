@@ -3,7 +3,17 @@
 void task(void);
 uint8_t stack[4096];
 int main(void) {
-	write(1, "\x1b\x2fuser program\n", 15);
+	write(1, "\x1b\x07init process\n", 15);
+
+	pid_t pid = clone(CLONE_FILES, 0x800000000000);
+	if (pid == 0) {
+		const char *argv[] = { NULL };
+		execv("/shell", argv);
+	} else {
+		char str[15] = "\x1b\x2fthe pid is 0\n";
+		str[13] += pid;
+		write(1, str, 15);
+	}
 
 	while (1) {}
 	return 0;

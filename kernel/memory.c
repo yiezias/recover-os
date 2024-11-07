@@ -206,7 +206,9 @@ static uint64_t *page_entry_ptr(size_t vaddr, enum PML pml) {
 		page_entry_page = (uint64_t *)(kernel_addr_base
 					       + (page_entry & (~0xfff)));
 	} else {
-		page_entry_page = running_task()->pml4;
+		void *pml4;
+		asm volatile("movq %%cr3,%0" : "=g"(pml4)::"memory");
+		page_entry_page = kernel_addr_base + pml4;
 	}
 	return page_entry_page + page_entry_idx(vaddr, pml);
 }
@@ -241,9 +243,6 @@ static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 	asm("movq %%cr2, %0" : "=r"(page_fault_vaddr));
 	size_t fault_page = page_fault_vaddr & (~0xfff);
 
-	put_intr_info(intr_nr, rbp_ptr, cur_task);
-	put_info("page_fault_vaddr:\t", page_fault_vaddr);
-	while (1) {}
 	bool in_rg = false;
 	for (int i = 0; i != 4; ++i) {
 		in_rg |= in_range(cur_task->addr_space.vaddr[i],

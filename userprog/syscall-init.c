@@ -1,4 +1,5 @@
 #include "syscall-init.h"
+#include "exec.h"
 #include "file.h"
 #include "print.h"
 #include "syscall.h"
@@ -25,6 +26,7 @@ void syscall_init(void) {
 	syscall_table[SYS_CLOSE] = sys_close;
 	syscall_table[SYS_STAT] = sys_stat;
 	syscall_table[SYS_CLONE] = sys_clone;
+	syscall_table[SYS_EXECV] = sys_execv;
 
 	put_str("syscall_init: end\n");
 }

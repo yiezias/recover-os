@@ -33,3 +33,6 @@ ssize_t stat(char *pathname UNUSED, struct stat *stat_buf UNUSED) {
 pid_t clone(size_t clone_flag UNUSED, size_t stack UNUSED) {
 	return _syscall(SYS_CLONE);
 }
+ssize_t execv(char *pathname UNUSED, const char *argv[] UNUSED) {
+	return _syscall(SYS_EXECV);
+}
