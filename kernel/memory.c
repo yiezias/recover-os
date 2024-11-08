@@ -228,9 +228,27 @@ void page_map(size_t vaddr) {
 }
 
 void page_unmap(size_t vaddr) {
-	size_t paddr = *page_entry_ptr(vaddr, pt) &= ~0xfff;
+	memset((void *)vaddr, 0, PG_SIZE);
+	size_t paddr[4];
+	for (int pml = 0; pml != 4; ++pml) {
+		paddr[pml] = *page_entry_ptr(vaddr, pml) & ~0xfff;
+		size_t idx = 0;
+		for (; idx != 512; ++idx) {
+			if (((uint64_t *)(kernel_addr_base + paddr[pml]))[idx]
+			    & 1) {
+				break;
+			}
+		}
+		if (idx != 512) {
+			paddr[pml] = 0;
+		}
+	}
 	asm volatile("invlpg %0" ::"m"(vaddr) : "memory");
-	pool_free(&phy_mem_pool, paddr, 1);
+	for (int pml = 0; pml != 4; ++pml) {
+		if (paddr[pml]) {
+			pool_free(&phy_mem_pool, paddr[pml], 1);
+		}
+	}
 }
 
 #define in_range(start, size, vaddr) \

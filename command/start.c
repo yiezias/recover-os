@@ -9,5 +9,5 @@ void _start(int argc, char *argv[]) {
 	main(argc, argv);
 	close(fi);
 	close(fo);
-	while (1) {}
+	_exit(0);
 }

@@ -23,6 +23,9 @@ enum task_status {
 	TASK_RUNNING,
 	TASK_READY,
 	TASK_BLOCKED,
+	TASK_HANGING,
+	TASK_WAITING,
+	TASK_DIED,
 };
 
 struct addr_space {
@@ -66,6 +69,8 @@ struct task_struct {
 	struct switch_stack switch_stack;
 	size_t stack, stack_size;
 
+	int exit_status;
+
 	uint64_t stack_magic;
 };
 #define STACK_MAGIC 0x474d575a5a46594c
@@ -88,4 +93,9 @@ void task_yield(void);
 void copy_page(size_t d_page, size_t s_page, struct task_struct *d_task,
 	       struct task_struct *s_task);
 pid_t sys_clone(size_t clone_flag, size_t stack, void *child_fn, void *args);
+
+extern struct list all_tasks_list;
+extern struct list ready_tasks_list;
+
+extern struct task_struct *init_proc;
 #endif

@@ -3,6 +3,7 @@
 #include "file.h"
 #include "print.h"
 #include "syscall.h"
+#include "wait_exit.h"
 
 #define syscall_nr 32
 
@@ -27,6 +28,8 @@ void syscall_init(void) {
 	syscall_table[SYS_STAT] = sys_stat;
 	syscall_table[SYS_CLONE] = sys_clone;
 	syscall_table[SYS_EXECV] = sys_execv;
+	syscall_table[SYS_WAIT] = sys_wait;
+	syscall_table[SYS_EXIT] = sys_exit;
 
 	put_str("syscall_init: end\n");
 }

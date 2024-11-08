@@ -12,6 +12,8 @@ enum SYSCALL_NR {
 	SYS_STAT,
 	SYS_CLONE,
 	SYS_EXECV,
+	SYS_EXIT,
+	SYS_WAIT,
 };
 
 ssize_t read(ssize_t fd, void *buf, size_t count);
@@ -21,4 +23,6 @@ ssize_t close(ssize_t fd);
 ssize_t stat(char *pathname, struct stat *stat_buf);
 pid_t clone(size_t clone_flag, size_t stack, void *child_fn, void *args);
 ssize_t execv(char *pathname, const char *argv[]);
+pid_t wait(int *status);
+void _exit(int status);
 #endif

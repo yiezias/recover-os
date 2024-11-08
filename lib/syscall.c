@@ -37,3 +37,9 @@ pid_t clone(size_t clone_flag UNUSED, size_t stack UNUSED,
 ssize_t execv(char *pathname UNUSED, const char *argv[] UNUSED) {
 	return _syscall(SYS_EXECV);
 }
+pid_t wait(int *status UNUSED) {
+	return _syscall(SYS_WAIT);
+}
+void _exit(int status UNUSED) {
+	_syscall(SYS_EXIT);
+}

@@ -82,8 +82,7 @@ static void init_task(struct task_struct *task, uint8_t prio) {
 	task->pid = alloc_pid();
 	task->parent_task = task->pid > 1 ? running_task() : task;
 	task->pml4 = task->parent_task->pml4;
-	memcpy(&task->addr_space, &task->parent_task->addr_space,
-	       sizeof(struct addr_space));
+	memset(&task->addr_space, 0, sizeof(struct addr_space));
 	task->prio = task->ticks = prio;
 	task->stack_magic = STACK_MAGIC;
 	ASSERT(!elem_find(&all_tasks_list, &task->all_list_tag));
@@ -129,6 +128,7 @@ struct task_struct *create_task(size_t stack, void *entry, void *args,
 	return task;
 }
 
+struct task_struct *init_proc;
 static void make_main_task(void) {
 	struct task_struct *main_task = alloc_pages(1);
 	put_info("main_task: ", (size_t)main_task);
@@ -144,6 +144,8 @@ static void make_main_task(void) {
 
 	main_task->parent_task = main_task;
 	main_task->pml4 = KERNEL_PML4;
+
+	init_proc = main_task;
 }
 
 static void idle_task_init(void) {
@@ -199,6 +201,8 @@ pid_t sys_clone(size_t clone_flag, size_t stack, void *child_fn, void *args) {
 		memset(task->pml4, 0, PG_SIZE);
 		memcpy(task->pml4 + 256, task->parent_task->pml4 + 256,
 		       PG_SIZE / 2);
+		memcpy(&task->addr_space, &task->parent_task->addr_space,
+		       sizeof(struct addr_space));
 		/* 复制栈 */
 		ASSERT(task->parent_task->stack_size == PG_SIZE);
 		size_t d_page = task->stack - task->stack_size;
@@ -234,7 +238,8 @@ void task_init(void) {
 
 
 void task_block(enum task_status status) {
-	ASSERT(status == TASK_BLOCKED);
+	ASSERT(status == TASK_BLOCKED || status == TASK_HANGING
+	       || status == TASK_WAITING);
 	enum intr_stat old_stat = set_intr_stat(intr_off);
 	running_task()->status = status;
 	schedule();
@@ -242,7 +247,8 @@ void task_block(enum task_status status) {
 }
 
 void task_unblock(struct task_struct *task) {
-	ASSERT(task->status == TASK_BLOCKED);
+	ASSERT(task->status == TASK_BLOCKED || task->status == TASK_HANGING
+	       || task->status == TASK_WAITING);
 	enum intr_stat old_stat = set_intr_stat(intr_off);
 	ASSERT(!elem_find(&ready_tasks_list, &task->general_tag));
 	list_push(&ready_tasks_list, &task->general_tag);
