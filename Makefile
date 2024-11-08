@@ -16,7 +16,7 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)
      $(BUILD_DIR)/switch.o $(BUILD_DIR)/list.o $(BUILD_DIR)/sync.o $(BUILD_DIR)/ioqueue.o \
      $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/bio.o $(BUILD_DIR)/inode.o \
      $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o $(BUILD_DIR)/console.o $(BUILD_DIR)/syscall-init.o \
-     $(BUILD_DIR)/system-call.o $(BUILD_DIR)/exec.o $(BUILD_DIR)/wait_exit.o
+     $(BUILD_DIR)/system-call.o $(BUILD_DIR)/exec.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o
 
 UOBJS=$(BUILD_DIR)/syscall.o $(BUILD_DIR)/init.o $(BUILD_DIR)/start.o $(BUILD_DIR)/shell.o
 

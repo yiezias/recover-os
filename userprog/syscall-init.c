@@ -1,6 +1,7 @@
 #include "syscall-init.h"
 #include "exec.h"
 #include "file.h"
+#include "pipe.h"
 #include "print.h"
 #include "syscall.h"
 #include "wait_exit.h"
@@ -30,6 +31,8 @@ void syscall_init(void) {
 	syscall_table[SYS_EXECV] = sys_execv;
 	syscall_table[SYS_WAIT] = sys_wait;
 	syscall_table[SYS_EXIT] = sys_exit;
+	syscall_table[SYS_PIPE] = sys_pipe;
+	syscall_table[SYS_DUP2] = sys_dup2;
 
 	put_str("syscall_init: end\n");
 }

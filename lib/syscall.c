@@ -43,3 +43,9 @@ pid_t wait(int *status UNUSED) {
 void _exit(int status UNUSED) {
 	_syscall(SYS_EXIT);
 }
+int pipe(ssize_t pipe_fd[2] UNUSED) {
+	return _syscall(SYS_PIPE);
+}
+ssize_t dup2(size_t oldfd UNUSED, size_t newfd UNUSED) {
+	return _syscall(SYS_DUP2);
+}

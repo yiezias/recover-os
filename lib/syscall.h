@@ -10,6 +10,8 @@ enum SYSCALL_NR {
 	SYS_OPEN,
 	SYS_CLOSE,
 	SYS_STAT,
+	SYS_PIPE,
+	SYS_DUP2,
 	SYS_CLONE,
 	SYS_EXECV,
 	SYS_EXIT,
@@ -25,4 +27,6 @@ pid_t clone(size_t clone_flag, size_t stack, void *child_fn, void *args);
 ssize_t execv(char *pathname, const char *argv[]);
 pid_t wait(int *status);
 void _exit(int status);
+int pipe(ssize_t pipe_fd[2]);
+ssize_t dup2(size_t oldfd, size_t newfd);
 #endif
