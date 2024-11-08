@@ -19,6 +19,6 @@ ssize_t write(ssize_t fd, void *buf, size_t count);
 ssize_t open(const char *pathname);
 ssize_t close(ssize_t fd);
 ssize_t stat(char *pathname, struct stat *stat_buf);
-pid_t clone(size_t clone_flag, size_t stack);
+pid_t clone(size_t clone_flag, size_t stack, void *child_fn, void *args);
 ssize_t execv(char *pathname, const char *argv[]);
 #endif

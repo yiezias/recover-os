@@ -94,7 +94,8 @@ static void init_task(struct task_struct *task, uint8_t prio) {
 	for (size_t i = 0; i != MAX_FILES_OPEN_PER_PROC; ++i) {
 		task->fd_table[i] = -1;
 	}
-	task->stack_size = PG_SIZE;
+	task->stack_size =
+		task->pid > 1 ? task->parent_task->stack_size : PG_SIZE;
 }
 
 #define KERNEL_PML4 ((uint64_t *)0xffff800000100000)
@@ -155,19 +156,19 @@ static void idle_task_init(void) {
 	idle_task->intr_stack->ss = SELECTOR_K_DATA;
 }
 
-void copy_page(size_t page, struct task_struct *d_task,
+void copy_page(size_t d_page, size_t s_page, struct task_struct *d_task,
 	       struct task_struct *s_task) {
 	uint64_t *pml4 = running_task()->pml4;
 	void *page_buf = alloc_pages(1);
 
 	asm volatile(
 		"movq %0,%%cr3" ::"r"((size_t)s_task->pml4 - kernel_addr_base));
-	memcpy(page_buf, (void *)page, PG_SIZE);
+	memcpy(page_buf, (void *)s_page, PG_SIZE);
 
 	asm volatile(
 		"movq %0,%%cr3" ::"r"((size_t)d_task->pml4 - kernel_addr_base));
-	page_map(page);
-	memcpy((void *)page, page_buf, PG_SIZE);
+	page_map(d_page);
+	memcpy((void *)d_page, page_buf, PG_SIZE);
 
 	asm volatile("movq %0,%%cr3" ::"r"((size_t)pml4 - kernel_addr_base));
 	free_pages(page_buf, 1);
@@ -175,27 +176,42 @@ void copy_page(size_t page, struct task_struct *d_task,
 
 extern void system_ret(void);
 size_t rsp_buf;
-pid_t sys_clone(size_t clone_flag, size_t stack) {
+pid_t sys_clone(size_t clone_flag, size_t stack, void *child_fn, void *args) {
 	uint64_t syscall_rbp;
 	asm volatile("movq (%%rbp),%0" : "=a"(syscall_rbp));
-	struct task_struct *task = create_task(stack, system_ret, NULL, 30, 0);
-	// 修改返回值
-	*(uint64_t *)(syscall_rbp - 8) = 0;
 
-	task->intr_stack->rbp = syscall_rbp;
-
+	bool su = 1;
 	if (!(clone_flag & CLONE_VM)) {
+		stack = running_task()->stack;
+		child_fn = system_ret;
+		args = NULL;
+		su = 0;
+	}
+	struct task_struct *task = create_task(stack, child_fn, args, 30, su);
+	if (!(clone_flag & CLONE_VM)) {
+		// 修改返回值
+		*(uint64_t *)(syscall_rbp - 8) = 0;
+
+		task->intr_stack->rbp = syscall_rbp;
+
+		/* 创建分页 */
 		task->pml4 = alloc_pages(1);
 		memset(task->pml4, 0, PG_SIZE);
-		memcpy(task->pml4 + 256, task->parent_task->pml4 + 256, 2048);
-	}
-	void *tmp_stack = alloc_pages(1);
-	asm volatile("movq %%rsp,%0" : "=g"(rsp_buf)::"memory");
-	asm volatile("movq %0,%%rsp" ::"g"(tmp_stack + PG_SIZE));
-	copy_page(DEFAULT_STACK - PG_SIZE, task, task->parent_task);
-	asm volatile("movq %0,%%rsp" ::"g"(rsp_buf));
+		memcpy(task->pml4 + 256, task->parent_task->pml4 + 256,
+		       PG_SIZE / 2);
+		/* 复制栈 */
+		ASSERT(task->parent_task->stack_size == PG_SIZE);
+		size_t d_page = task->stack - task->stack_size;
+		size_t s_page = task->parent_task->stack
+				- task->parent_task->stack_size;
 
-	free_pages(tmp_stack, 1);
+		void *tmp_stack = alloc_pages(1);
+		asm volatile("movq %%rsp,%0" : "=g"(rsp_buf)::"memory");
+		asm volatile("movq %0,%%rsp" ::"g"(tmp_stack + PG_SIZE));
+		copy_page(d_page, s_page, task, task->parent_task);
+		asm volatile("movq %0,%%rsp" ::"g"(rsp_buf));
+		free_pages(tmp_stack, 1);
+	}
 
 	if (clone_flag & CLONE_FILES) {
 		memcpy(task->fd_table, task->parent_task->fd_table,

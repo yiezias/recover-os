@@ -30,7 +30,8 @@ ssize_t close(ssize_t fd UNUSED) {
 ssize_t stat(char *pathname UNUSED, struct stat *stat_buf UNUSED) {
 	return _syscall(SYS_STAT);
 }
-pid_t clone(size_t clone_flag UNUSED, size_t stack UNUSED) {
+pid_t clone(size_t clone_flag UNUSED, size_t stack UNUSED,
+	    void *child_fn UNUSED, void *args UNUSED) {
 	return _syscall(SYS_CLONE);
 }
 ssize_t execv(char *pathname UNUSED, const char *argv[] UNUSED) {

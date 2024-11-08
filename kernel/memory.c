@@ -253,7 +253,8 @@ static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 	size_t stack_start = cur_task->stack - stack_size;
 	in_rg |= in_range(stack_start, stack_size, page_fault_vaddr);
 	if (in_rg) {
-		copy_page(fault_page, cur_task, cur_task->parent_task);
+		copy_page(fault_page, fault_page, cur_task,
+			  cur_task->parent_task);
 		return;
 	}
 

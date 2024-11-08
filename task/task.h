@@ -85,7 +85,7 @@ void task_yield(void);
 #define CLONE_VM 0x100
 #define CLONE_FILES 0x400
 
-void copy_page(size_t page, struct task_struct *d_task,
+void copy_page(size_t d_page, size_t s_page, struct task_struct *d_task,
 	       struct task_struct *s_task);
-pid_t sys_clone(size_t clone_flag, size_t stack);
+pid_t sys_clone(size_t clone_flag, size_t stack, void *child_fn, void *args);
 #endif
