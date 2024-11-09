@@ -289,6 +289,9 @@ static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 
 ssize_t sys_brk(size_t brk) {
 	struct task_struct *cur_task = running_task();
+	while (cur_task->addr_space.heap_start == 0) {
+		cur_task = running_task()->parent_task;
+	}
 	if (brk == 0) {
 		return cur_task->addr_space.heap_end;
 	}
