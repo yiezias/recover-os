@@ -3,13 +3,14 @@
 #include "debug.h"
 #include "dir.h"
 #include "global.h"
+#include "pipe.h"
 #include "string.h"
 #include "task.h"
 
 struct file *file_table;
 struct semaphore file_table_lock;
 
-static ssize_t get_free_slot(struct inode *inode, enum file_types f_type) {
+ssize_t get_free_slot(struct inode *inode, enum file_types f_type) {
 	ssize_t i = 0;
 	for (; i != FILE_TABLE_SIZE; ++i) {
 		if (file_table[i].f_inode == NULL) {
@@ -24,7 +25,7 @@ static ssize_t get_free_slot(struct inode *inode, enum file_types f_type) {
 	return i;
 }
 
-static ssize_t free_fd_alloc(void) {
+ssize_t free_fd_alloc(void) {
 	struct task_struct *cur_task = running_task();
 	ssize_t i = 0;
 	for (; i != MAX_FILES_OPEN_PER_PROC; ++i) {
@@ -136,10 +137,22 @@ ssize_t sys_close(ssize_t fd) {
 	/* 置文件表对应位为空闲 */
 	sema_down(&file_table_lock);
 	ASSERT(file_table[ft_idx].f_inode != NULL);
-	if (file_table[ft_idx].f_type != FT_CHR) {
+
+	bool clear_f_inode = false;
+	if (file_table[ft_idx].f_type == FT_CHR) {
+		clear_f_inode = true;
+	} else if (file_table[ft_idx].f_type == FT_FIFO) {
+		if (--file_table[ft_idx].f_pos == 0) {
+			free_pages(file_table[ft_idx].f_inode, 1);
+			clear_f_inode = true;
+		}
+	} else {
 		inode_close(file_table[ft_idx].f_inode);
+		clear_f_inode = true;
 	}
-	file_table[ft_idx].f_inode = NULL;
+	if (clear_f_inode) {
+		file_table[ft_idx].f_inode = NULL;
+	}
 	sema_up(&file_table_lock);
 	/* 置进程文件描述符为空闲 */
 	cur_task->fd_table[fd] = -1;
@@ -155,6 +168,11 @@ ssize_t sys_lseek(ssize_t fd, ssize_t offset, enum whence whence) {
 		return -FD_INVALID;
 	}
 	sema_down(&file_table_lock);
+	if (file_table[ft_idx].f_type != FT_REG
+	    && file_table[ft_idx].f_type != FT_DIR) {
+		sema_up(&file_table_lock);
+		return 0;
+	}
 	struct file *pf = file_table + ft_idx;
 	ssize_t file_size = pf->f_inode->disk_inode.file_size;
 	switch (whence) {
@@ -194,14 +212,16 @@ ssize_t sys_read(ssize_t fd, void *buf, size_t count) {
 		sema_down(&inode->inode_lock);
 		nbyte = inode_read(inode, buf, count, pf->f_pos);
 		sema_up(&inode->inode_lock);
+		if (nbyte > 0) {
+			pf->f_pos += nbyte;
+		}
 	} else if (pf->f_type == FT_CHR) {
 		nbyte = count;
 		console_read(buf, count);
+	} else if (pf->f_type == FT_FIFO) {
+		nbyte = pipe_read(fd, buf, count);
 	}
 
-	if (nbyte > 0) {
-		pf->f_pos += nbyte;
-	}
 	sema_up(&file_table_lock);
 	return nbyte;
 }
@@ -223,14 +243,16 @@ ssize_t sys_write(ssize_t fd, void *buf, size_t count) {
 		sema_down(&inode->inode_lock);
 		nbyte = inode_write(inode, buf, count, pf->f_pos);
 		sema_up(&inode->inode_lock);
+		if (nbyte > 0) {
+			pf->f_pos += nbyte;
+		}
 	} else if (pf->f_type == FT_CHR) {
 		nbyte = count;
 		console_write(buf, count);
+	} else if (pf->f_type == FT_FIFO) {
+		nbyte = pipe_write(fd, buf, count);
 	}
 
-	if (nbyte > 0) {
-		pf->f_pos += nbyte;
-	}
 	sema_up(&file_table_lock);
 	return nbyte;
 }

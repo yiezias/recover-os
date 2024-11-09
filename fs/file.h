@@ -19,6 +19,9 @@ enum whence {
 	SEEK_END,
 };
 
+ssize_t get_free_slot(struct inode *inode, enum file_types f_type);
+ssize_t free_fd_alloc(void);
+
 ssize_t sys_open(const char *pathname);
 ssize_t sys_close(ssize_t fd);
 ssize_t sys_lseek(ssize_t fd, ssize_t offset, enum whence whence);
