@@ -5,21 +5,27 @@
 #include "task.h"
 
 int sys_pipe(ssize_t pipe_fd[2]) {
+	struct task_struct *task = running_task();
 	ssize_t ft_idx = get_free_slot(alloc_pages(1), FT_FIFO);
 	if (FILE_TABLE_SIZE == ft_idx) {
 		return -(int)FILE_TABLE_SIZE;
 	}
+	ioqueue_init((struct ioqueue *)file_table[ft_idx].f_inode);
+	file_table[ft_idx].f_pos = 2;
+
 	pipe_fd[0] = free_fd_alloc();
-	pipe_fd[1] = free_fd_alloc();
-	if (MAX_FILES_OPEN_PER_PROC == pipe_fd[0]
-	    || MAX_FILES_OPEN_PER_PROC == pipe_fd[1]) {
+	if (MAX_FILES_OPEN_PER_PROC == pipe_fd[0]) {
 		free_pages(file_table[ft_idx].f_inode, 1);
 		return -MAX_FILES_OPEN_PER_PROC;
 	}
-	ioqueue_init((struct ioqueue *)file_table[ft_idx].f_inode);
-	file_table[ft_idx].f_pos = 2;
-	struct task_struct *task = running_task();
 	task->fd_table[pipe_fd[0]] = ft_idx;
+
+	pipe_fd[1] = free_fd_alloc();
+	if (MAX_FILES_OPEN_PER_PROC == pipe_fd[1]) {
+		task->fd_table[pipe_fd[0]] = -1;
+		free_pages(file_table[ft_idx].f_inode, 1);
+		return -MAX_FILES_OPEN_PER_PROC;
+	}
 	task->fd_table[pipe_fd[1]] = ft_idx;
 	return 0;
 }
