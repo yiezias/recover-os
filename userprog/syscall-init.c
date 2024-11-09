@@ -6,7 +6,7 @@
 #include "syscall.h"
 #include "wait_exit.h"
 
-#define syscall_nr 32
+#define syscall_nr 64
 
 typedef void *syscall;
 syscall syscall_table[syscall_nr];
@@ -33,6 +33,7 @@ void syscall_init(void) {
 	syscall_table[SYS_EXIT] = sys_exit;
 	syscall_table[SYS_PIPE] = sys_pipe;
 	syscall_table[SYS_DUP2] = sys_dup2;
+	syscall_table[SYS_BRK] = sys_brk;
 
 	put_str("syscall_init: end\n");
 }

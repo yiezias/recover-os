@@ -275,10 +275,37 @@ static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 			  cur_task->parent_task);
 		return;
 	}
+	size_t heap_start = cur_task->addr_space.heap_start;
+	size_t heap_size = cur_task->addr_space.heap_end - heap_start;
+	if (in_range(heap_start, heap_size, page_fault_vaddr)) {
+		page_map(fault_page);
+		return;
+	}
 
 	put_intr_info(intr_nr, rbp_ptr, cur_task);
 	put_info("page_fault_vaddr:\t", page_fault_vaddr);
 	while (1) {}
+}
+
+ssize_t sys_brk(size_t brk) {
+	struct task_struct *cur_task = running_task();
+	if (brk == 0) {
+		return cur_task->addr_space.heap_end;
+	}
+	if (brk < cur_task->addr_space.heap_start
+	    || brk > DEFAULT_STACK - PG_SIZE) {
+		return -1;
+	}
+	if (brk < cur_task->addr_space.heap_end) {
+		size_t pg_idx_start = DIV_ROUND_UP(brk, PG_SIZE);
+		size_t pg_idx_end =
+			DIV_ROUND_UP(cur_task->addr_space.heap_end, PG_SIZE);
+		for (; pg_idx_start != pg_idx_end; ++pg_idx_start) {
+			page_unmap(pg_idx_start * PG_SIZE);
+		}
+	}
+	cur_task->addr_space.heap_end = brk;
+	return 0;
 }
 
 

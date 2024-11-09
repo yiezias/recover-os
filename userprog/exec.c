@@ -129,8 +129,14 @@ static ssize_t elf_parse(const char *pathname, struct addr_space *addr_space) {
 				     prog_header.p_memsz, prog_header.p_vaddr);
 			addr_space->filesz[load_idx] = prog_header.p_memsz;
 			addr_space->vaddr[load_idx++] = prog_header.p_vaddr;
+
+			size_t *oldbrk = &addr_space->heap_start;
+			size_t newbrk =
+				prog_header.p_vaddr + prog_header.p_memsz;
+			*oldbrk = *oldbrk > newbrk ? *oldbrk : newbrk;
 		}
 	}
+	addr_space->heap_end = addr_space->heap_start;
 	ASSERT(load_idx <= 4);
 	ret = elf_header.e_entry;
 

@@ -1,6 +1,7 @@
+#include "stdio.h"
 #include "syscall.h"
 
 int main(void) {
-	write(1, "\x1b\x4fhere is shell\n", 16);
+	printf("here is %s, pid is %d\n", "shell", 4);
 	return 0;
 }

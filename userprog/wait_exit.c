@@ -66,6 +66,7 @@ static bool init_adopt_a_child(struct list_elem *pelem, void *task) {
 }
 
 static void release_prog_resource(struct task_struct *release_task) {
+	sys_brk(release_task->addr_space.heap_start);
 	for (int i = 0; i != 4; ++i) {
 		/* 应当把四级页表全部释放 */
 		size_t vaddr = release_task->addr_space.vaddr[i];
@@ -81,6 +82,7 @@ static void release_prog_resource(struct task_struct *release_task) {
 			page_unmap(page_start + i * PG_SIZE);
 		}
 	}
+	page_unmap(DEFAULT_STACK - PG_SIZE);
 
 	for (int fd_idx = 0; fd_idx != MAX_FILES_OPEN_PER_PROC; ++fd_idx) {
 		if (release_task->fd_table[fd_idx] != -1) {

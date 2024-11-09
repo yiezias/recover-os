@@ -31,6 +31,7 @@ enum task_status {
 struct addr_space {
 	size_t vaddr[4];
 	size_t filesz[4];
+	size_t heap_start, heap_end;
 };
 
 struct switch_stack {

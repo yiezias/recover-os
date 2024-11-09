@@ -49,3 +49,6 @@ int pipe(ssize_t pipe_fd[2] UNUSED) {
 ssize_t dup2(size_t oldfd UNUSED, size_t newfd UNUSED) {
 	return _syscall(SYS_DUP2);
 }
+ssize_t brk(size_t brk UNUSED) {
+	return _syscall(SYS_BRK);
+}

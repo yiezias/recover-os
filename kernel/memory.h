@@ -16,4 +16,6 @@ void kfree(void *addr);
 
 void page_map(size_t vaddr);
 void page_unmap(size_t vaddr);
+
+ssize_t sys_brk(size_t brk);
 #endif

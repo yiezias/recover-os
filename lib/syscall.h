@@ -5,17 +5,18 @@
 #include "types.h"
 
 enum SYSCALL_NR {
-	SYS_READ,
-	SYS_WRITE,
-	SYS_OPEN,
-	SYS_CLOSE,
-	SYS_STAT,
-	SYS_PIPE,
-	SYS_DUP2,
-	SYS_CLONE,
-	SYS_EXECV,
-	SYS_EXIT,
-	SYS_WAIT,
+	SYS_READ = 0,
+	SYS_WRITE = 1,
+	SYS_OPEN = 2,
+	SYS_CLOSE = 3,
+	SYS_STAT = 4,
+	SYS_BRK = 12,
+	SYS_PIPE = 22,
+	SYS_DUP2 = 33,
+	SYS_CLONE = 56,
+	SYS_EXECV = 59,
+	SYS_EXIT = 60,
+	SYS_WAIT = 61,
 };
 
 ssize_t read(ssize_t fd, void *buf, size_t count);
@@ -29,4 +30,5 @@ pid_t wait(int *status);
 void _exit(int status);
 int pipe(ssize_t pipe_fd[2]);
 ssize_t dup2(size_t oldfd, size_t newfd);
+ssize_t brk(size_t brk);
 #endif
