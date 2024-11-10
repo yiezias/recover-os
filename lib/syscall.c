@@ -52,3 +52,10 @@ ssize_t dup2(size_t oldfd UNUSED, size_t newfd UNUSED) {
 ssize_t brk(size_t brk UNUSED) {
 	return _syscall(SYS_BRK);
 }
+ssize_t mknod(const char *pathname UNUSED, enum file_types type UNUSED,
+	      ssize_t dev UNUSED) {
+	return _syscall(SYS_MKNODE);
+}
+ssize_t unlink(const char *pathname UNUSED) {
+	return _syscall(SYS_UNLINK);
+}

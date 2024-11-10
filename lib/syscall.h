@@ -17,6 +17,8 @@ enum SYSCALL_NR {
 	SYS_EXECV = 59,
 	SYS_EXIT = 60,
 	SYS_WAIT = 61,
+	SYS_UNLINK,
+	SYS_MKNODE,
 };
 
 ssize_t read(ssize_t fd, void *buf, size_t count);
@@ -31,4 +33,6 @@ void _exit(int status);
 int pipe(ssize_t pipe_fd[2]);
 ssize_t dup2(size_t oldfd, size_t newfd);
 ssize_t brk(size_t brk);
+ssize_t mknod(const char *pathname, enum file_types type, ssize_t dev);
+ssize_t unlink(const char *pathname);
 #endif

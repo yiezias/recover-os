@@ -34,6 +34,8 @@ void syscall_init(void) {
 	syscall_table[SYS_PIPE] = sys_pipe;
 	syscall_table[SYS_DUP2] = sys_dup2;
 	syscall_table[SYS_BRK] = sys_brk;
+	syscall_table[SYS_MKNODE] = sys_mknod;
+	syscall_table[SYS_UNLINK] = sys_unlink;
 
 	put_str("syscall_init: end\n");
 }
