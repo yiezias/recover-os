@@ -19,7 +19,7 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/string.o $(BUILD_DIR)/print.o $(BUILD_DIR)
      $(BUILD_DIR)/system-call.o $(BUILD_DIR)/exec.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o
 
 UOBJS=$(BUILD_DIR)/syscall.o $(BUILD_DIR)/init.o $(BUILD_DIR)/start.o $(BUILD_DIR)/shell.o \
-      $(BUILD_DIR)/stdio.o
+      $(BUILD_DIR)/stdio.o $(BUILD_DIR)/assert.o
 
 AOBJS=$(OBJS) $(UOBJS)
 
@@ -86,7 +86,7 @@ $(BUILD_DIR)/kernel.bin: $(OBJS) $(DISK)
 	dd if=$@ of=$(DISK) bs=512 seek=3 conv=notrunc
 
 UDEPS=$(BUILD_DIR)/start.o $(BUILD_DIR)/syscall.o $(BUILD_DIR)/stdio.o \
-      $(BUILD_DIR)/string.o
+      $(BUILD_DIR)/string.o $(BUILD_DIR)/assert.o
 LDFLAGS2=$(UDEPS) -e _start
 $(BUILD_DIR)/init: $(BUILD_DIR)/init.o $(UDEPS) $(DISK)
 	$(LD) $< $(LDFLAGS2) -o $@
