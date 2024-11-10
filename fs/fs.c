@@ -145,6 +145,7 @@ void filesys_init(void) {
 
 		pre_write_file("/init", 200);
 		pre_write_file("/shell", 240);
+		pre_write_file("/echo", 280);
 	}
 	put_str("filesys_init: end\n");
 }

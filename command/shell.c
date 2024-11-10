@@ -92,7 +92,7 @@ static void help(void) {
 	//	printf("\tps: show process information\n");
 
 	printf("\nthe extern commands:\n");
-	//	printf("\techo: print the args\n");
+	printf("\t/echo: print the args\n");
 	//	printf("\tcat: read or write file\n");
 	//	printf("\tls: show the files in root directory\n");
 	//	printf("\trm: remove a regular file\n");
@@ -130,7 +130,14 @@ static void cmd_execute(uint32_t argc UNUSED, const char **argv) {
 			       argv[0]);
 			_exit(-1);
 		} else {
-			execv((char *)argv[0], argv);
+			ssize_t ret = execv((char *)argv[0], argv);
+			if (ret < 0) {
+				printf("cmd_execute: %s: "
+				       "doesn't seems to be a executable "
+				       "file\n",
+				       argv[0]);
+				_exit(ret);
+			}
 		}
 	}
 }

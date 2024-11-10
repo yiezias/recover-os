@@ -2,6 +2,8 @@
 #include "syscall.h"
 
 int main(void) {
+	open("/dev/stdin");
+	open("/dev/stdout");
 	write(1, "\x1b\x07init process\n", 15);
 
 	pid_t pid = clone(0, 0, NULL, NULL);
