@@ -224,20 +224,19 @@ pid_t sys_clone(size_t clone_flag, size_t stack, void *child_fn, void *args) {
 		free_pages(tmp_stack, 1);
 	}
 
-	if (clone_flag & CLONE_FILES) {
-		memcpy(task->fd_table, task->parent_task->fd_table,
-		       MAX_FILES_OPEN_PER_PROC * 8);
-		for (size_t i = 0; i != MAX_FILES_OPEN_PER_PROC; ++i) {
-			ssize_t ft_idx = task->fd_table[i];
-			if (ft_idx != -1) {
-				struct file *pf = file_table + ft_idx;
-				if (FT_FIFO == pf->f_type) {
-					++pf->f_pos;
-				}
-				if (FT_CHR == pf->f_type) {
-				} else {
-					++pf->f_inode->open_cnts;
-				}
+	memcpy(task->fd_table, task->parent_task->fd_table,
+	       MAX_FILES_OPEN_PER_PROC * 8);
+	for (size_t i = 0; i != MAX_FILES_OPEN_PER_PROC; ++i) {
+		ssize_t ft_idx = task->fd_table[i];
+		if (ft_idx != -1) {
+			struct file *pf = file_table + ft_idx;
+			if (FT_FIFO == pf->f_type) {
+				++pf->f_pos;
+			}
+			if (FT_CHR == pf->f_type) {
+				++pf->f_pos;
+			} else {
+				++pf->f_inode->open_cnts;
 			}
 		}
 	}

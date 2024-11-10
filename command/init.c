@@ -1,3 +1,4 @@
+#include "stdio.h"
 #include "syscall.h"
 
 int main(void) {
@@ -9,8 +10,11 @@ int main(void) {
 		execv("/shell", argv);
 	} else {
 		int status;
+		pid_t child_pid;
 		while (1) {
-			wait(&status);
+			child_pid = wait(&status);
+			printf("recieve a child, child_pid is %d, status is %d",
+			       child_pid, status);
 		}
 	}
 

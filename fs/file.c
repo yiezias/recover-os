@@ -117,6 +117,9 @@ ssize_t sys_open(const char *pathname) {
 						      : inode_open(de_buf.i_no);
 	sema_down(&file_table_lock);
 	ssize_t ft_idx = get_free_slot(inode, de_buf.f_type);
+	if (de_buf.f_type == FT_CHR) {
+		file_table[ft_idx].f_pos = 1;
+	}
 	sema_up(&file_table_lock);
 	if (ft_idx == FILE_TABLE_SIZE) {
 		return -ft_idx;
@@ -140,7 +143,9 @@ ssize_t sys_close(ssize_t fd) {
 
 	bool clear_f_inode = false;
 	if (file_table[ft_idx].f_type == FT_CHR) {
-		clear_f_inode = true;
+		if (--file_table[ft_idx].f_pos == 0) {
+			clear_f_inode = true;
+		}
 	} else if (file_table[ft_idx].f_type == FT_FIFO) {
 		if (--file_table[ft_idx].f_pos == 0) {
 			free_pages(file_table[ft_idx].f_inode, 1);
