@@ -24,7 +24,7 @@ struct semaphore sema;
 void init_all(void);
 
 int main(void) {
-	cls_screen();
+	put_char('\f');
 	put_str("Kernel start\n");
 	init_all();
 

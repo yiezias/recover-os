@@ -35,6 +35,16 @@ static void set_cur(uint16_t cur) {
 	outb(0x3d5, cur);
 }
 
+static void cls_screen(void) {
+	short *dis_addr = (short *)D_BASE_ADDR;
+
+	for (int i = 0; i != 80 * 25; ++i) {
+		dis_addr[i] = ' ' + (d_property << 8);
+	}
+
+	set_cur(0);
+}
+
 void put_char(char c) {
 	static bool change_property = false;
 	if (change_property) {
@@ -49,6 +59,9 @@ void put_char(char c) {
 	case '\x1b':
 		change_property = true;
 		return;
+	case '\f':
+		cls_screen();
+		break;
 	case '\r':
 		set_cur(cur / 80 * 80);
 		break;
@@ -104,15 +117,4 @@ void put_info(char *message, size_t num) {
 	put_str(message);
 	put_num(num);
 	put_char('\n');
-}
-
-
-void cls_screen(void) {
-	short *dis_addr = (short *)D_BASE_ADDR;
-
-	for (int i = 0; i != 80 * 25; ++i) {
-		dis_addr[i] = ' ' + (d_property << 8);
-	}
-
-	set_cur(0);
 }
