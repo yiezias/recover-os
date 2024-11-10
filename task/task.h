@@ -95,6 +95,8 @@ void copy_page(size_t d_page, size_t s_page, struct task_struct *d_task,
 	       struct task_struct *s_task);
 pid_t sys_clone(size_t clone_flag, size_t stack, void *child_fn, void *args);
 
+void release_pid(pid_t pid);
+
 extern struct list all_tasks_list;
 extern struct list ready_tasks_list;
 

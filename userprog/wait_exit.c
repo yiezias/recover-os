@@ -43,7 +43,9 @@ pid_t sys_wait(int *status) {
 				      &child_task->general_tag)) {
 				list_remove(&child_task->general_tag);
 			}
-			list_remove(&task->all_list_tag);
+			list_remove(&child_task->all_list_tag);
+			release_pid(child_pid);
+			free_pages(child_task, 1);
 			return child_pid;
 		}
 		child_elem = list_traversal(&all_tasks_list, find_child, task);

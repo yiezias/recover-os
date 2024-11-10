@@ -78,6 +78,12 @@ static pid_t alloc_pid(void) {
 	return (bit_idx + pid_pool.pid_start);
 }
 
+void release_pid(pid_t pid) {
+	sema_down(&pid_pool.pid_lock);
+	bitmap_set(&pid_pool.pid_bitmap, pid - pid_pool.pid_start, 0);
+	sema_up(&pid_pool.pid_lock);
+}
+
 
 static void init_task(struct task_struct *task, uint8_t prio) {
 	task->pid = alloc_pid();
@@ -227,6 +233,8 @@ pid_t sys_clone(size_t clone_flag, size_t stack, void *child_fn, void *args) {
 				struct file *pf = file_table + ft_idx;
 				if (FT_FIFO == pf->f_type) {
 					++pf->f_pos;
+				}
+				if (FT_CHR == pf->f_type) {
 				} else {
 					++pf->f_inode->open_cnts;
 				}
