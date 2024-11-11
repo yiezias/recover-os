@@ -36,6 +36,8 @@ void syscall_init(void) {
 	syscall_table[SYS_BRK] = sys_brk;
 	syscall_table[SYS_MKNODE] = sys_mknod;
 	syscall_table[SYS_UNLINK] = sys_unlink;
+	syscall_table[SYS_MKDIR] = sys_mkdir;
+	syscall_table[SYS_RMDIR] = sys_rmdir;
 
 	put_str("syscall_init: end\n");
 }

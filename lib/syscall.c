@@ -59,3 +59,9 @@ ssize_t mknod(const char *pathname UNUSED, enum file_types type UNUSED,
 ssize_t unlink(const char *pathname UNUSED) {
 	return _syscall(SYS_UNLINK);
 }
+ssize_t mkdir(char *pathname UNUSED) {
+	return _syscall(SYS_MKDIR);
+}
+ssize_t rmdir(char *pathname UNUSED) {
+	return _syscall(SYS_RMDIR);
+}
