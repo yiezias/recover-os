@@ -4,6 +4,7 @@
 #include "pipe.h"
 #include "print.h"
 #include "syscall.h"
+#include "timer.h"
 #include "wait_exit.h"
 
 #define syscall_nr 64
@@ -38,6 +39,9 @@ void syscall_init(void) {
 	syscall_table[SYS_UNLINK] = sys_unlink;
 	syscall_table[SYS_MKDIR] = sys_mkdir;
 	syscall_table[SYS_RMDIR] = sys_rmdir;
+	syscall_table[SYS_CLOCK_GETTIME] = sys_clock_gettime;
+	syscall_table[SYS_SCHED_YIELD] = task_yield;
+	//	syscall_table[SYS_TRIAL] = ;
 
 	put_str("syscall_init: end\n");
 }

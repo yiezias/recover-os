@@ -65,3 +65,13 @@ ssize_t mkdir(char *pathname UNUSED) {
 ssize_t rmdir(char *pathname UNUSED) {
 	return _syscall(SYS_RMDIR);
 }
+ssize_t clock_gettime(int clk_id UNUSED) {
+	return _syscall(SYS_CLOCK_GETTIME);
+}
+void sched_yield(void) {
+	_syscall(SYS_SCHED_YIELD);
+}
+ssize_t trial(ssize_t arg0 UNUSED, ssize_t arg1 UNUSED, ssize_t arg2 UNUSED,
+	     ssize_t arg3 UNUSED, ssize_t arg4 UNUSED) {
+	return _syscall(SYS_TRIAL);
+}

@@ -23,8 +23,10 @@ UOBJS=$(BUILD_DIR)/syscall.o $(BUILD_DIR)/init.o $(BUILD_DIR)/start.o $(BUILD_DI
 
 AOBJS=$(OBJS) $(UOBJS)
 
-run: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/init $(BUILD_DIR)/shell \
+all: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/init $(BUILD_DIR)/shell \
      $(BUILD_DIR)/echo
+
+run:all
 	bochs -q
 
 

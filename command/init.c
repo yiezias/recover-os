@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "stdio.h"
 #include "syscall.h"
 
@@ -5,6 +6,13 @@ int main(void) {
 	open("/dev/stdin");
 	open("/dev/stdout");
 	write(1, "\x1b\x07init process\n", 15);
+	ssize_t time = clock_gettime(1);
+	assert(time > 0);
+	while (clock_gettime(1) - time < 1000000) {
+		sched_yield();
+	}
+	printf("sleep done");
+	while (1) {}
 
 	pid_t pid = clone(0, 0, NULL, NULL);
 	if (pid == 0) {

@@ -59,3 +59,16 @@ void mtime_sleep(size_t m_seconds) {
 	ASSERT(sleep_ticks > 0);
 	ticks_to_sleep(sleep_ticks);
 }
+
+ssize_t sys_clock_gettime(int clk_id) {
+	struct task_struct *cur_task = running_task();
+	switch (clk_id) {
+	case CLOCK_MONOTONIC:
+		return ticks * mil_seconds_per_intr;
+		break;
+	case CLOCK_PROCESS_CPUTIME_ID:
+		return cur_task->ticks * mil_seconds_per_intr;
+		break;
+	}
+	return -1;
+}

@@ -12,6 +12,7 @@ enum SYSCALL_NR {
 	SYS_STAT,
 	SYS_BRK,
 	SYS_PIPE,
+	SYS_SCHED_YIELD,
 	SYS_DUP2,
 	SYS_CLONE,
 	SYS_EXECV,
@@ -21,6 +22,8 @@ enum SYSCALL_NR {
 	SYS_RMDIR,
 	SYS_UNLINK,
 	SYS_MKNODE,
+	SYS_CLOCK_GETTIME,
+	SYS_TRIAL,
 };
 /* 从文件描述符fd中读取count个字节到buf中，返回实际读取到的字节数 */
 ssize_t read(ssize_t fd, void *buf, size_t count);
@@ -54,4 +57,11 @@ ssize_t unlink(const char *pathname);
 ssize_t mkdir(char *pathname);
 /* 删除目录 */
 ssize_t rmdir(char *pathname);
+/* 获取系统时间 */
+ssize_t clock_gettime(int clk_id);
+/* 切换进程 */
+void sched_yield(void);
+/* 试验 */
+ssize_t trial(ssize_t arg0, ssize_t arg1, ssize_t arg2, ssize_t arg3,
+	     ssize_t arg4);
 #endif
