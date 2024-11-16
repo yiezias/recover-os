@@ -220,14 +220,17 @@ ssize_t sys_read(ssize_t fd, void *buf, size_t count) {
 		if (nbyte > 0) {
 			pf->f_pos += nbyte;
 		}
-	} else if (pf->f_type == FT_CHR) {
+	}
+	enum file_types f_type = pf->f_type;
+	sema_up(&file_table_lock);
+
+	if (f_type == FT_CHR) {
 		nbyte = count;
 		console_read(buf, count);
-	} else if (pf->f_type == FT_FIFO) {
+	} else if (f_type == FT_FIFO) {
 		nbyte = pipe_read(fd, buf, count);
 	}
 
-	sema_up(&file_table_lock);
 	return nbyte;
 }
 
