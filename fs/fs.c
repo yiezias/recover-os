@@ -147,6 +147,7 @@ void filesys_init(void) {
 		pre_write_file("/shell", 240);
 		pre_write_file("/echo", 280);
 		pre_write_file("/snake", 320);
+		pre_write_file("/ls", 360);
 	}
 	put_str("filesys_init: end\n");
 }
