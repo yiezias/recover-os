@@ -150,6 +150,7 @@ ssize_t sys_execv(char *pathname, const char *argv[]) {
 	asm volatile("movq (%%rbp),%0" : "=a"(rbp));
 
 	struct task_struct *cur_task = running_task();
+	cur_task->addr_space.heap_start = 0;
 	ssize_t entry_point = elf_parse(pathname, &cur_task->addr_space);
 	if (entry_point < 0) {
 		return entry_point;

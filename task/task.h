@@ -68,7 +68,6 @@ struct task_struct {
 	ssize_t fd_table[MAX_FILES_OPEN_PER_PROC];
 	struct intr_stack *intr_stack;
 	struct switch_stack switch_stack;
-	size_t stack, stack_size;
 
 	int exit_status;
 

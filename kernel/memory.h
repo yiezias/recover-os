@@ -18,4 +18,6 @@ void page_map(size_t vaddr);
 void page_unmap(size_t vaddr);
 
 ssize_t sys_brk(size_t brk);
+
+extern size_t global_stack_size;
 #endif

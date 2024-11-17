@@ -29,10 +29,11 @@ int main(void) {
 
 	const char *argv[] = { NULL };
 
-	struct task_struct *main_task = running_task();
-	main_task->stack = DEFAULT_STACK;
 	uint64_t *rbp = (uint64_t *)(DEFAULT_STACK - 8);
-	page_map(DEFAULT_STACK - PG_SIZE);
+	for (size_t stack = DEFAULT_STACK - global_stack_size;
+	     stack != DEFAULT_STACK; stack += PG_SIZE) {
+		page_map(stack);
+	}
 	rbp[-3] = 0x202;
 	asm volatile("movq %0,%%rbp" ::"g"(rbp));
 

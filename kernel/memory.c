@@ -251,6 +251,7 @@ void page_unmap(size_t vaddr) {
 	}
 }
 
+size_t global_stack_size = 2 * PG_SIZE;
 #define in_range(start, size, vaddr) \
 	((start) <= (vaddr) && (vaddr) < ((start) + (size)))
 static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
@@ -267,8 +268,8 @@ static void intr_page_handle(uint8_t intr_nr, uint64_t *rbp_ptr) {
 				  cur_task->addr_space.filesz[i],
 				  page_fault_vaddr);
 	}
-	size_t stack_size = cur_task->stack_size;
-	size_t stack_start = cur_task->stack - stack_size;
+	size_t stack_size = global_stack_size;
+	size_t stack_start = DEFAULT_STACK - stack_size;
 	in_rg |= in_range(stack_start, stack_size, page_fault_vaddr);
 	if (in_rg) {
 		copy_page(fault_page, fault_page, cur_task,
