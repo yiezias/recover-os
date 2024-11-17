@@ -89,12 +89,12 @@ size_t printf(const char *format, ...) {
 	void *args;
 	asm volatile("movq %%rbp,%0" : "=g"(args)::"memory");
 	args -= 0xb0;
-	size_t h_start = brk(0);
-	char *buf = (char *)h_start + 2048;
-	brk((size_t)buf);
+	/* 线程不安全 */
+	char *buf = (char *)brk(0);
+	brk((size_t)buf + 2048);
 	size_t count = vsprintf(buf, format, args);
 	size_t ret = write(1, buf, count);
-	brk(h_start);
+	brk((size_t)buf);
 	return ret;
 }
 
