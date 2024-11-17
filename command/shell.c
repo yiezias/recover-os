@@ -94,7 +94,7 @@ static void help(void) {
 	printf("\nthe extern commands:\n");
 	printf("\t/echo: print the args\n");
 	//	printf("\tcat: read or write file\n");
-	//	printf("\tls: show the files in root directory\n");
+	printf("\t/ls: show the files in root directory\n");
 	//	printf("\trm: remove a regular file\n");
 
 	printf("shortcut key:\n");
