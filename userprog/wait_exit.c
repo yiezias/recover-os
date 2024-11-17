@@ -84,7 +84,7 @@ static void release_prog_resource(struct task_struct *release_task) {
 			page_unmap(page_start + i * PG_SIZE);
 		}
 	}
-	page_unmap(DEFAULT_STACK - PG_SIZE);
+	page_unmap(release_task->stack - PG_SIZE);
 
 	for (int fd_idx = 0; fd_idx != MAX_FILES_OPEN_PER_PROC; ++fd_idx) {
 		if (release_task->fd_table[fd_idx] != -1) {
