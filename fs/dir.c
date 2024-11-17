@@ -84,7 +84,7 @@ ssize_t path_prase(const char *pathname, struct dirent *de_buf) {
 		return -DIRENT_ISNT_EXIST;
 	}
 	sema_down(&inode->inode_lock);
-	ssize_t de_idx = dirent_search(inode, old_idx + 1);
+	ssize_t de_idx = *(old_idx + 1) ? dirent_search(inode, old_idx + 1) : 0;
 	if (de_idx < 0) {
 		de_buf->i_no = ULONG_MAX;
 		memcpy(de_buf->filename, old_idx + 1, idx - old_idx);
